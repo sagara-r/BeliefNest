@@ -1,0 +1,8 @@
+numpy
+langchain
+langchain-openai
+javascript
+requests
+setuptools
+psutil
+jinja2
