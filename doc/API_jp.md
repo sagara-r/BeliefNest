@@ -40,6 +40,7 @@
 | `mf_server_port`	| `int`         | `3000`      		| Javascriptサーバのポート番号．  |
 | `mc_host`			| `str`         | `localhost`      	| Real worldを作成するMinecraftサーバのホスト．  |
 | `mc_port`			| `int`         | `25565`      		| Real worldを作成するMinecraftサーバのポート番号．  |
+| `mq_host`        | `str`    | `localhost` | RabbitMQサーバのホスト.                                 |
 | `ckpt_dir`		| `str`         | `ckpt`     		| ckptフォルダのパス．resume=Trueの場合，存在するフォルダを指定する必要がある．  |
 | `log_dir	`		| `str`         | `logs`      		| logsフォルダのパス．  |
 | `logger`			| `Logger`      | `None`      		| ロガー．  |

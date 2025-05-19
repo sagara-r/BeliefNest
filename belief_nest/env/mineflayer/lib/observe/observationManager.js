@@ -24,8 +24,9 @@ const OnUseLever = require('./onUseLever')
 const lock = new AsyncLock();
 
 class ObservationManager{
-    constructor({bot, parentSimPort, branchCkptDir, staticBlockTypes, parentAgentNames, logger, config}){
+    constructor({bot, mqHost, parentSimPort, branchCkptDir, staticBlockTypes, parentAgentNames, logger, config}){
         this.bot = bot;
+        this.mqHost = mqHost; 
         this.parentSimPort = parentSimPort;
         this.branchCkptDir = branchCkptDir;
         this.staticBlockTypes = staticBlockTypes;
@@ -95,7 +96,13 @@ class ObservationManager{
     }
 
     async _connectMq(){
-        this.mqConn = await amqp.connect('amqp://localhost');
+        const options = {
+            protocol: 'amqp',
+            hostname: this.mqHost,
+            port: 5672,
+            frameMax: 8192
+        };
+        this.mqConn = await amqp.connect(options);
         this.mqChannel = await this.mqConn.createChannel();
         await this.mqChannel.assertQueue(this.AGENT_DATA_QUEUE, { durable: false });
         this.mqChannel.consume(this.AGENT_DATA_QUEUE, (msg) => {

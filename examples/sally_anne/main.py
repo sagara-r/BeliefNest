@@ -16,7 +16,14 @@ from api_key import OPENAI_API_KEY
 CONFIG_FILE = "config.json"
 INITIAL_STATE_FILE = "state#-1.json"
 
+# Use container name (e.g., "mc_server") when running inside Docker on the same network
+# Use "localhost" when running outside Docker
+# Use "host.docker.internal" to access the host from inside Docker (only on Windows/macOS)
+MC_HOST = "mc_server"  
 MC_PORT = 25565
+
+# Same rules apply for RabbitMQ
+MQ_HOST = "rabbitmq"
 TASK = "Get a diamond from a chest."
 
 #########################################################
@@ -84,7 +91,9 @@ def call_offset_llm(code):
 bn = BeliefNestWrapper(
     config=CONFIG,
     initial_state=INITIAL_STATE,
-    mc_port=MC_PORT, 
+    mc_host=MC_HOST,
+    mc_port=MC_PORT,
+    mq_host=MQ_HOST, 
     ckpt_dir=str(ckpt_dir), 
     log_dir=str(log_dir), 
     logger=logger

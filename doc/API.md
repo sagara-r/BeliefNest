@@ -43,6 +43,7 @@ Constructor. Launches a JavaScript server connected to a Minecraft server and cr
 | `mf_server_port` | `int`    | `3000`      | Port of the JavaScript server.                                                                |
 | `mc_host`        | `str`    | `localhost` | Host of the Minecraft server where the real world is created.                                 |
 | `mc_port`        | `int`    | `25565`     | Port of the Minecraft server where the real world is created.                                 |
+| `mq_host`        | `str`    | `localhost` | Host of the RabbitMQ server.                                 |
 | `ckpt_dir`       | `str`    | `ckpt`      | Path to the checkpoint folder. Required if `resume=True`.                                     |
 | `log_dir`        | `str`    | `logs`      | Path to the logs folder.                                                                      |
 | `logger`         | `Logger` | `None`      | Logger instance.                                                                              |

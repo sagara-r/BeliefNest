@@ -27,6 +27,7 @@ class BeliefNestWrapper(MethodLogging):
         mf_server_port=3000,
         mc_host="localhost",
         mc_port=25565,
+        mq_host="localhost",
         ckpt_dir="ckpt",
         log_dir="logs",
         logger=None,
@@ -76,6 +77,7 @@ class BeliefNestWrapper(MethodLogging):
         args = {
             "mcHost": mc_host,
             "mcPort": mc_port,
+            "mqHost": mq_host,
             "ckptDir": self.ckpt_dir,
             "logDir": self.log_dir
         }
@@ -230,7 +232,7 @@ class BeliefNestWrapper(MethodLogging):
             
     def _get_js_process(self, server_port):
         tmp = os.path.abspath(os.path.dirname(__file__))
-        mineflayer_dir = U.f_join(tmp, "env\mineflayer")
+        mineflayer_dir = U.f_join(tmp, "env", "mineflayer")
         return SubprocessMonitor(
             commands=[
                 "node",

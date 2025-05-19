@@ -47,6 +47,7 @@ class BotPlayer{
             offset: player.outerSim.offset,
             envBox: player.outerSim.envBox,
             isAdmin: isAdmin,
+            mqHost: player.outerSim.mqHost,
             adminMcName: player.outerSim.adminBot ? player.outerSim.adminBot.mcName : mcName,
             staticBlockTypes: player.outerSim.staticBlockTypes,
             parentAgentNames: player.outerSim.parentPlayers.map(p=>p.agentName),
@@ -125,6 +126,7 @@ class BotPlayer{
             parentPlayers, 
             mcHost, 
             mcPort, 
+            mqHost: outer.mqHost,
             adminAgentName: outer.adminBot.agentName, 
             playerPrefix, 
             canDigWhenMove: outer.canDigWhenMove,
@@ -316,6 +318,7 @@ class HumanPlayer{
             parentPlayers, 
             mcHost, 
             mcPort, 
+            mqHost: player.outerSim.mqHost,
             adminAgentName: outer.adminBot.agentName, 
             playerPrefix, 
             canDigWhenMove: outer.canDigWhenMove,
@@ -394,6 +397,7 @@ class BeliefSimulator{
         parentPlayers, 
         mcHost, 
         mcPort, 
+        mqHost="localhost",
         adminAgentName="admin",
         playerPrefix="",
         parentSimPort=null,
@@ -419,6 +423,7 @@ class BeliefSimulator{
         sim.parentPlayers = parentPlayers;
         sim.mcHost = mcHost; 
         sim.mcPort = mcPort;
+        sim.mqHost = mqHost;
         sim.playerPrefix = playerPrefix;
         sim.canDigWhenMove = canDigWhenMove;
         sim.moveTimeoutSec = moveTimeoutSec;

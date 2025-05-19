@@ -7,7 +7,7 @@
 
 <div align="center">
 
-[[Arxiv]]()
+<!--[[Arxiv]]()-->
 
 [![Python Version](https://img.shields.io/badge/Python-3.9-blue.svg)](https://github.com/sagara-r/BeliefNest)
 [![GitHub license](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/sagara-r/BeliefNest/blob/main/LICENSE)
@@ -17,75 +17,74 @@ ______________________________________________________________________
 
 </div>
 
-We propose an open-source simulator, BeliefNest, designed to enable embodied agents to perform collaborative tasks by leveraging Theory of Mind. BeliefNest dynamically and hierarchically constructs simulators within a Minecraft environment, allowing agents to explicitly represent nested belief states about themselves and others. This enables agent control in open-domain tasks that require Theory of Mind reasoning. The simulator provides a prompt generation mechanism based on each belief state, facilitating the design and evaluation of methods for agent control utilizing large language models (LLMs).
+We introduce an open-source simulator, BeliefNest, designed to enable embodied agents to perform collaborative tasks by leveraging Theory of Mind. BeliefNest dynamically and hierarchically constructs simulators within a Minecraft environment, allowing agents to explicitly represent nested belief states about themselves and others. This enables agent control in open-domain tasks that require Theory of Mind reasoning. The simulator provides a prompt generation mechanism based on each belief state, facilitating the design and evaluation of methods for agent control utilizing large language models (LLMs).
 
 In this repo, we provide BeliefNest code. This codebase is under [MIT License](LICENSE).
 
 # Installation
-Download the latest version [here](https://github.com/sagara-r/BeliefNest/releases). BeliefNest requires Python ≥ 3.9 and Node.js ≥ 16.13.0. We have tested on Windows 11. You need to follow the instructions below to install BeliefNest.
 
-## Step 1. Python Install
-```
-cd BeliefNest
-pip install -e .
-```
+This tool runs entirely within Docker, so there is no need to install Python or Node.js on your local machine. Download the latest version from [here](https://github.com/sagara-r/BeliefNest/releases). The setup has been tested on Windows 11. Follow the steps below to install.
 
-## Step 2. Node.js Install
-```
-cd belief_nest/env/mineflayer
-npm install
-```
+## Install Docker
 
-## Step 3. Docker Install
-If you are using Windows, download the installer from [Docker Docs](https://docs.docker.com/desktop/setup/install/windows-install/) and execute it.
+If you're using Windows, download and run the installer from the [Docker Docs](https://docs.docker.com/desktop/setup/install/windows-install/).
 
-## Step 4. Minecraft Client Install
-Install the [Minecraft Launcher](https://www.minecraft.net/) and ensure that you can play Minecraft: Java Edition (version 1.19). It will be used as a client. A valid Java Edition license is required.
+## Install Minecraft
 
-From the "Installations" tab in the launcher, create a new launch configuration and select version 1.19.
+Install the [Minecraft Launcher](https://www.minecraft.net/) and make sure you can run Minecraft: Java Edition (version 1.19). A valid Java Edition license is required.
+
+In the Minecraft Launcher, go to the "Installations" tab, click "New Installation", and select version 1.19.
+
+---
 
 # Usage
 ## Getting Started
 Start the RabbitMQ server, the Minecraft server, and the main program in three different terminals.
 
 ### Launch the RabbitMQ server
-If you are using Docker Desktop, make sure to launch the application beforehand.
-```
-docker run -it --rm --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:4.1-management
-```
+Make sure Docker Desktop is already running.
+
+Double-click `rabbitmq.bat` located in the downloaded `BeliefNest-*.*.*` folder to launch the server.
 
 ### Launch the Minecraft server
-See [here](https://www.minecraft.net/download/server) to launch a Minecraft server. Alternatively, you can launch the server using the command below. 
-```
-cd mc_server/flat
-docker compose up -d
-docker attach minecraft-server
-```
+Double-click `mc_server.bat` inside the `mc_server/flat` directory to start the server.
 
-It is possible to use `Open to LAN` in `Singleplayer` mode, though it is not recommended, as only up to 8 players can log in and thus only very small-scale experiments can run.
+When you see the message `Done (*.**s)! For help, type "help"` in the terminal, type `op operator` to grant operator permissions. You only need to do this once unless you use a different world.
 
-Run `/op operator` in the Minecraft server terminal; this only needs to be done once unless you switch to a different world.
+Launch the Minecraft client, go to "Multiplayer", and join the server. If the world does not appear, click "Add Server" and enter `localhost:25565` as the server address.
 
-Launch the Minecraft client and join the world from `Multiplayer`. If the world doesn't appear, use `Add Server` and specify the server address (e.g., `localhost:25565`).
+Once you've joined the world, run `op xxx` and `gamemode creative xxx` in the terminal, replacing `xxx` with your Minecraft username. In creative mode, double-tapping the spacebar allows you to fly. Use WASD and Shift to move.
 
-### Run the example code
-```
-cd examples/sally_anne/
-```
-After writing the API key value into `api_key.py`, please execute the following command.
-```
-python main.py
-```
 
-## Use own world
-Change the initial state and config.
+### Running the sample code
 
-### Create initial state
+Generate your OpenAI API key from [here](https://platform.openai.com/api-keys). You’ll need to create an account.
+
+Paste the API key into `api_key.py` located in `examples/sally_anne`, then double-click `main.bat` to run the sample.
+
+The API cost for running the sample code should be less than $0.10 USD.
+
+---
+
+## Using Other Minecraft Worlds
+
+You can run BeliefNest in other Minecraft worlds. Copy `docker-compose.yaml` and `mc_server.bat` from `mc_server/flat` to a new folder, and double-click the copied `mc_server.bat`.
+
+You can also connect to a Minecraft world running natively on Windows. In this case, set the `mqHost` parameter in the `BeliefNestWrapper` constructor to `host.docker.internal`. Be aware that blocks in the world may be forcibly replaced, so take care when using existing worlds.
+
+Using "Open to LAN" from Singleplayer mode is also possible, but it only supports up to 8 players, which limits the size of experiments.
+
+Once the necessary blocks are placed in the world, follow the steps below to generate the initial state and configuration file.
+
+### Generating the Initial State
+
+Open a command prompt in the `belief_nest/env/mineflayer` directory and run:
+
 ```
-cd belief_nest/env/mineflayer/
 node generate_init_state.js
-mv state#-1.js /path/to/main_dir
 ```
+
+Move the generated `state#-1.js` file to an appropriate folder and load it in `main.py`.
 
 ## API
 See [doc/API.md](doc/API.md)
@@ -98,8 +97,8 @@ Some portions of the code are adapted from [MineDojo/Voyager](https://github.com
 # Citation
 ~~~
 @article{sagara2025beliefnest,
-  title={####},
-  author={Rikunari SAGARA, Koichiro TERAO, Naoto IWAHASHI},
+  title={BeliefNest: A Joint Action Simulator for Embodied Agents with Theory of Mind},
+  author={Rikunari Sagara, Koichiro Terao, Naoto Iwahashi},
   year={2025},
   journal={arXiv preprint arXiv: ####}
 }

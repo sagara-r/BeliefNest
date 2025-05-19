@@ -19,6 +19,7 @@ const mcName = workerData.mcName;
 const initialOffsetVec3 = new Vec3(...workerData.offset);
 const envBox = workerData.envBox;
 const isAdmin = workerData.isAdmin;
+const mqHost = workerData.mqHost;
 const adminMcName = workerData.adminMcName ?? "admin";
 const staticBlockTypes = workerData.staticBlockTypes ?? [];
 const parentAgentNames = workerData.parentAgentNames;
@@ -42,7 +43,14 @@ let obsManager;
 
 let mqConn;
 let mqChannel;
-amqp.connect('amqp://localhost')
+
+const options = {
+    protocol: 'amqp',
+    hostname: mqHost,
+    port: 5672,
+    frameMax: 8192
+};
+amqp.connect(options)
 .then((v)=>{
     mqConn = v;
 })
@@ -172,6 +180,7 @@ bot.once('spawn', async () => {
 
         obsManager = new ObservationManager({
             bot: bot,
+            mqHost: mqHost,
             parentSimPort: parentSimPort,
             branchCkptDir: initialBranchCkptDir,
             staticBlockTypes: staticBlockTypes,

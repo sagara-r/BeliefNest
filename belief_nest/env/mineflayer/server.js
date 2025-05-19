@@ -59,6 +59,7 @@ app.post("/setup", requireParams(['ckptDir', 'logDir']), asyncWrapper(async (req
     
     const mcHost = req.body.mcHost || "localhost";
     const mcPort = req.body.mcPort || 25565;
+    const mqHost = req.body.mqHost || "localhost";
     const doJoinAgents = req.body.doJoinAgents !== undefined ? req.body.doJoinAgents : true;
     const doInitializeWorld = req.body.doInitializeWorld !== undefined ? req.body.doInitializeWorld : true;
     const consoleLogLevel = req.body.consoleLogLevel || "info";
@@ -92,6 +93,7 @@ app.post("/setup", requireParams(['ckptDir', 'logDir']), asyncWrapper(async (req
         parentPlayers: [],
         mcHost, 
         mcPort, 
+        mqHost,
         adminAgentName, 
         playerPrefix:"", 
         canDigWhenMove,
