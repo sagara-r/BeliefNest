@@ -2,9 +2,9 @@
 
 <div align="center">
 
-<!--[\[Arxiv\]]()-->
+[\[Arxiv\]](https://arxiv.org/abs/2505.12321)
 
-[![Python Version](https://img.shields.io/badge/Python-3.9-blue.svg)](https://github.com/sagara-r/BeliefNest)
+<!--![Docker Pulls](https://img.shields.io/docker/pulls/sagarar/beliefnest)-->
 [![GitHub license](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/sagara-r/BeliefNest/blob/main/LICENSE)
 
 ---
@@ -19,9 +19,13 @@
 
 ---
 
-# インストール方法
+# 事前準備
 
-本ツールは Docker 内で完結して動作するため、Python や Node.js をローカルにセットアップする必要はありません。[こちら](https://github.com/sagara-r/BeliefNest/releases)から最新版をダウンロードしてください。動作確認は Windows 11 上で行っています。以下の手順に従ってインストールしてください。
+本ツールは Docker 内で完結して動作するため、Python や Node.js をローカルにセットアップする必要はありません。以下の手順に従って事前準備を行ってください。動作確認は Windows 11 上で行っています。
+
+## BeliefNest のダウンロード
+
+[こちら](https://github.com/sagara-r/BeliefNest/releases)から最新版をダウンロードしてください。
 
 ## Docker のインストール
 
@@ -44,26 +48,48 @@ RabbitMQ サーバ、Minecraftサーバ、mainプログラムの3つを異なる
 
 あらかじめDocker Desktopを起動しておいてください。
 
-ダウンロードした`BeliefNest-*.*.*`フォルダ内の`rabbitmq.bat`をダブルクリックして起動してください。
+ダウンロードした`BeliefNest-*.*.*`フォルダ内の`rabbitmq.bat`をダブルクリックして起動してください。または、任意のフォルダで以下を実行してください。
+```
+docker network create bnnet
+docker run -it --rm --network bnnet --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:4.1-management
+```
 
-### Minecraft サーバの起動
+### Minecraft サーバの起動と準備
 
-`mc_server/flat`内の`mc_server.bat`をダブルクリックし、サーバを起動してください。
+- サーバの起動
 
-ターミナルに`Done (*.**s)! For help, type "help"`と表示されたら、ターミナルで `op operator` を一度実行してください。異なるワールドを使用する場合を除き、複数回実行する必要はありません。
+  `mc_server/flat`内の`mc_server.bat`をダブルクリックしてサーバを起動してください。または、`mc_server/flat`内で以下を実行してください。
+  ```
+  docker compose up -d
+  docker attach mc_server
+  ```
 
-Minecraft クライアントを起動し、「Multiplayer」からワールドに参加してください。ワールドが表示されない場合は、「Add Server」で `localhost:25565` のようなサーバアドレスを指定してください。
+- ワールドへの参加
 
-ワールドに参加したら、ターミナルで`op xxx`および`gamemode creative xxx`を実行してください。ただし`xxx`はあなたのユーザ名です。Minecraftの画面でスペースを素早く2回押すとスペースで上昇できるようになります。WASDおよびShiftで移動できます。
+  ターミナルに`Done (*.**s)! For help, type "help"`と表示されたら、Minecraft クライアントを起動し、「マルチプレイ」からワールドに参加してください。ワールドが表示されない場合は、「サーバーを追加」で `localhost:25565` のようなサーバアドレスを指定してください。
 
----
+- 権限の付与
+
+  ワールドに参加したら、ターミナルで以下を順に実行してください。
+  ```
+  op operator
+  op xxx
+  gamemode creative xxx
+  ```
+  ただし`xxx`はあなたのユーザ名です。これによりあなたのユーザとBeliefNestで使用する`operator`というユーザにop権限が与えられ、様々なコマンドを使用可能になります。同一サーバを再度使用する際には、上記のコマンド実行は不要です。
+
+  Minecraftの画面でスペースを素早く2回押すとスペースで上昇できるようになります。WASDおよびShiftで移動できます。
 
 ### サンプルコードの実行
 
-[こちら](https://platform.openai.com/api-keys)からOpenAI API キーを発行してください。アカウントの作成が必要です。
-`examples/sally_anne`内の`api_key.py` に取得したAPIキーの値を記入し、`main.bat`をダブルクリックして実行してください．
+- [こちら](https://platform.openai.com/api-keys)からOpenAI API キーを発行してください。アカウントの作成が必要です。取得したAPIキーを、`examples/sally_anne`内の`api_key.py` に記入してください。なお、[こちら](https://platform.openai.com/settings/organization/billing/overview)から残高が0.1ドル以上存在することを確認してください。
 
-サンプルコード実行時のOpenAI APIの費用は0.1ドル以下です。
+- `main.bat`をダブルクリックして実行してください。または、`examples/sally_anne`内で以下を実行してください。
+  ```
+  docker run -it --rm -v %cd%:/app -w /app --network bnnet --name beliefnest sagarar/beliefnest:latest python main.py
+  ```
+
+  サンプルコードにてサリーの信念の推定を1回実行する時のOpenAI APIの費用は0.1ドル以下です。
 
 ---
 
@@ -104,9 +130,9 @@ node generate_init_state.js
 
 ```bibtex
 @article{sagara2025beliefnest,
-  title={####},
+  title={BeliefNest: A Joint Action Simulator for Embodied Agents with Theory of Mind},
   author={Rikunari SAGARA, Koichiro TERAO, Naoto IWAHASHI},
   year={2025},
-  journal={arXiv preprint arXiv: ####}
+  journal={arXiv preprint arXiv:2505.12321}
 }
 ```

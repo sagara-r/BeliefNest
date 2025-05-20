@@ -1080,6 +1080,9 @@ class ObservationManager{
             if(blockState.length){
                 const blockInfoList = [];
                 for(const b of blockState){
+                    if(b.name === null){
+                        continue;
+                    }
                     const blockInfo = {
                         position: new Vec3(b.position[0], b.position[1], b.position[2]),
                         name: b.name,
@@ -1099,6 +1102,9 @@ class ObservationManager{
                 });
             }
             for(const c of containerState){
+                if(c.items === null){
+                    continue;
+                }
                 await setContainer({ 
                     bot: this.bot, 
                     pos: new Vec3(c.position[0], c.position[1], c.position[2]), 

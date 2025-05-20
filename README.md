@@ -7,9 +7,9 @@
 
 <div align="center">
 
-<!--[[Arxiv]]()-->
+[\[Arxiv\]](https://arxiv.org/abs/2505.12321)
 
-[![Python Version](https://img.shields.io/badge/Python-3.9-blue.svg)](https://github.com/sagara-r/BeliefNest)
+<!--![Docker Pulls](https://img.shields.io/docker/pulls/sagarar/beliefnest)-->
 [![GitHub license](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/sagara-r/BeliefNest/blob/main/LICENSE)
 ______________________________________________________________________
 
@@ -21,9 +21,15 @@ We introduce an open-source simulator, BeliefNest, designed to enable embodied a
 
 In this repo, we provide BeliefNest code. This codebase is under [MIT License](LICENSE).
 
-# Installation
+# Preparation
 
-This tool runs entirely within Docker, so there is no need to install Python or Node.js on your local machine. Download the latest version from [here](https://github.com/sagara-r/BeliefNest/releases). The setup has been tested on Windows 11. Follow the steps below to install.
+This tool runs inside Docker, so you don't need to install Python, Node.js, or other dependencies manually.  
+To get started, you'll need to install **Docker** and **Minecraft**.  
+The setup has been tested on Windows 11.
+
+## Download BeliefNest
+
+Download the latest version from [here](https://github.com/sagara-r/BeliefNest/releases). 
 
 ## Install Docker
 
@@ -44,25 +50,49 @@ Start the RabbitMQ server, the Minecraft server, and the main program in three d
 ### Launch the RabbitMQ server
 Make sure Docker Desktop is already running.
 
-Double-click `rabbitmq.bat` located in the downloaded `BeliefNest-*.*.*` folder to launch the server.
+Double-click `rabbitmq.bat` located in the downloaded `BeliefNest-*.*.*` folder to launch the server.　Alternatively, you can run the following commands in any folder:
+```
+docker network create bnnet
+docker run -it --rm --network bnnet --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:4.1-management
+```
 
-### Launch the Minecraft server
-Double-click `mc_server.bat` inside the `mc_server/flat` directory to start the server.
+### Launch and prepare the Minecraft server
 
-When you see the message `Done (*.**s)! For help, type "help"` in the terminal, type `op operator` to grant operator permissions. You only need to do this once unless you use a different world.
+- **Launch the Server**
 
-Launch the Minecraft client, go to "Multiplayer", and join the server. If the world does not appear, click "Add Server" and enter `localhost:25565` as the server address.
+  Double-click `mc_server.bat` located in `mc_server/flat` to launch the server. Alternatively, execute the following commands inside the `mc_server/flat` directory:
+  ```
+  docker compose up -d
+  docker attach mc_server
+  ```
 
-Once you've joined the world, run `op xxx` and `gamemode creative xxx` in the terminal, replacing `xxx` with your Minecraft username. In creative mode, double-tapping the spacebar allows you to fly. Use WASD and Shift to move.
+- **Join the World**
+
+  When the terminal displays `Done (*.**s)! For help, type "help"`, start the Minecraft client and join the world via "Multiplayer". If the server is not listed, click "Add Server" and enter the server address as `localhost:25565`.
+
+- **Grant Permissions**
+
+  After joining the world, run the following commands in the terminal:
+  ```
+  op operator
+  op xxx
+  gamemode creative xxx
+  ```
+  Replace `xxx` with your Minecraft username. This will grant operator privileges to your user and the `operator` user used by BeliefNest, enabling the use of various commands. If you reuse the same server later, you do not need to run these commands again.
+
+  In Minecraft, press the spacebar twice quickly to start flying. Use WASD and Shift to move around.
 
 
-### Running the sample code
+### Run the sample code
 
-Generate your OpenAI API key from [here](https://platform.openai.com/api-keys). You’ll need to create an account.
+- Obtain an OpenAI API key from [here](https://platform.openai.com/api-keys). You will need to create an account. Enter the obtained API key into `api_key.py` in the `examples/sally_anne` directory. Also, please confirm that your balance is at least $0.10 from [this page](https://platform.openai.com/settings/organization/billing/overview).
 
-Paste the API key into `api_key.py` located in `examples/sally_anne`, then double-click `main.bat` to run the sample.
+- Double-click `main.bat` to run the sample. Alternatively, execute the following command in the `examples/sally_anne` directory:
+  ```
+  docker run -it --rm -v %cd%:/app -w /app --network bnnet --name beliefnest sagarar/beliefnest:latest python main.py
+  ```
 
-The API cost for running the sample code should be less than $0.10 USD.
+  The estimated OpenAI API cost for a single belief inference in the sample code is less than $0.10.
 
 ---
 
@@ -95,11 +125,11 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 Some portions of the code are adapted from [MineDojo/Voyager](https://github.com/MineDojo/Voyager), which is also licensed under the MIT License.
 
 # Citation
-~~~
+```bibtex
 @article{sagara2025beliefnest,
   title={BeliefNest: A Joint Action Simulator for Embodied Agents with Theory of Mind},
   author={Rikunari Sagara, Koichiro Terao, Naoto Iwahashi},
   year={2025},
-  journal={arXiv preprint arXiv: ####}
+  journal={arXiv preprint arXiv:2505.12321}
 }
-~~~
+```

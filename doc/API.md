@@ -150,7 +150,7 @@ None
 
 ### switch\_branch
 
-Switches or creates a branch. If the branch exists, it switches to it; otherwise, it creates a new branch from the current one. The `follow` branch is a special branch that sets the simulator to follow mode. Branches with any other name will set the simulator to observe mode.
+Switches or creates a branch. If the branch exists, it switches to it; otherwise, it creates a new branch from the current one. The `follow` branch is a special branch that sets the simulator to follow mode. Branches with any other name will set the simulator to control mode.
 <!--(See our [Paper]())-->
 
 #### Parameters
