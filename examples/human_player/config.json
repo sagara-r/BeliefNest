@@ -1,0 +1,21 @@
+{
+	"envBox": [[-11,-52,-11],[11,-49,11]],
+	"staticBlockTypes": ["oak_planks", "dark_oak_planks", "white_concrete", "red_wool", "blue_wool"],
+	"adminAgentName": "admin",
+	"canDigWhenMove": false,
+	"moveTimeoutSec": 10,
+	"players": {
+		"HUMAN_MC_NAME": {
+			"type": "HumanPlayer"
+		},
+		"anne": {
+			"type": "BotPlayer"
+		}
+	},
+	"observation": {
+		"playerObsInterval": 5,
+		"blockObsInterval": 10,
+		"disablePositionFiltering": false,
+		"positionMemoryMode": "last_seen"
+	}
+}

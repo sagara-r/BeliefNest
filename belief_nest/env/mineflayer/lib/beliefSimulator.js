@@ -318,7 +318,7 @@ class HumanPlayer{
             parentPlayers, 
             mcHost, 
             mcPort, 
-            mqHost: player.outerSim.mqHost,
+            mqHost: outer.mqHost,
             adminAgentName: outer.adminBot.agentName, 
             playerPrefix, 
             canDigWhenMove: outer.canDigWhenMove,
