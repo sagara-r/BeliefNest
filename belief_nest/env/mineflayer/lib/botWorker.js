@@ -26,6 +26,8 @@ const parentAgentNames = workerData.parentAgentNames;
 const requirePortSetting = workerData.requirePortSetting;
 const canDigWhenMove = workerData.canDigWhenMove ?? true;
 const moveTimeoutSec = workerData.moveTimeoutSec ?? 60;
+const stuckCheckIntervalSec = workerData.stuckCheckIntervalSec ?? 2;
+const stuckOffsetRange = workerData.stuckOffsetRange ?? 0.5;
 const createBotTimeoutSec = workerData.createBotTimeoutSec ?? 20;
 const logDir = workerData.logDir;
 
@@ -286,15 +288,41 @@ bot.once('spawn', async () => {
     });
 
     let movingTickCounter = 0;
+    let stopMovingTickCounter = 0;
+    let lastPosition = null;
+    const stopMovingTickNum = 20;
     function onTick() {
+        //console.log(`#########${bot.username} isMoving=${bot.pathfinder.isMoving()}`)
         if (bot.pathfinder.isMoving()) {
+            if(movingTickCounter === 0){
+                lastPosition = bot.entity.position;
+            }
             movingTickCounter++;
+            stopMovingTickCounter = 0;
+
+            if (movingTickCounter % (20 * stuckCheckIntervalSec) === 0) {
+                const delta = lastPosition.distanceTo(bot.entity.position);
+                if(delta < 0.1){
+                    const pos = bot.entity.position
+                    const dx = (Math.random() - 0.5) * 2 * stuckOffsetRange // -stuckOffsetRange <= dx <= stuckOffsetRange
+                    const dz = (Math.random() - 0.5) * 2 * stuckOffsetRange
+                    bot.chat(`/tp @s ${pos.x+dx} ${pos.y} ${pos.z+dz}`);
+                    logger.info(`${bot.username} is stuck. Trying to adjust position...`);
+                }
+                lastPosition = bot.entity.position;
+                logger.debug(`movingTickCounter=${movingTickCounter} delta=${delta}`);
+            }
+
             if (movingTickCounter >= 20 * moveTimeoutSec) {
                 bot.pathfinder.stop();
                 movingTickCounter = 0;
             }
+        } else if (stopMovingTickCounter < stopMovingTickNum){
+            stopMovingTickCounter++;
         } else {
             movingTickCounter = 0;
+            stopMovingTickCounter = 0;
+            lastPosition = null;
         }
     }
     bot.on("physicsTick", onTick);

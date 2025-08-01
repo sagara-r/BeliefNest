@@ -84,7 +84,7 @@ app.post("/setup", requireParams(['ckptDir', 'logDir']), asyncWrapper(async (req
 
 
     const globalSettingStr = fs.readFileSync(path.join(ckptDir, "config.json"));
-    const {envBox, staticBlockTypes, adminAgentName, canDigWhenMove, moveTimeoutSec, players, observation:observationConfig} = JSON.parse(globalSettingStr);
+    const {envBox, staticBlockTypes, adminAgentName, canDigWhenMove, moveTimeoutSec, stuckCheckIntervalSec, stuckOffsetRange, players, observation:observationConfig} = JSON.parse(globalSettingStr);
 
     world = await BeliefSimulator.createInstance({
         offset:[0,0,0], 
@@ -98,6 +98,8 @@ app.post("/setup", requireParams(['ckptDir', 'logDir']), asyncWrapper(async (req
         playerPrefix:"", 
         canDigWhenMove,
         moveTimeoutSec,
+        stuckCheckIntervalSec,
+        stuckOffsetRange,
         observationConfig,
         ckptDir,
         logDir,

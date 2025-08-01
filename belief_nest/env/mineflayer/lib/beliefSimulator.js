@@ -54,6 +54,8 @@ class BotPlayer{
             requirePortSetting: requirePortSetting,
             canDigWhenMove: player.outerSim.canDigWhenMove,
             moveTimeoutSec: player.outerSim.moveTimeoutSec,
+            stuckCheckIntervalSec: player.outerSim.stuckCheckIntervalSec,
+            stuckOffsetRange: player.outerSim.stuckOffsetRange,
             observationConfig: player.outerSim.observationConfig,
             branchCkptDir: branchCkptDir,
             logDir: player.outerSim.logDir,
@@ -131,6 +133,8 @@ class BotPlayer{
             playerPrefix, 
             canDigWhenMove: outer.canDigWhenMove,
             moveTimeoutSec: outer.moveTimeoutSec,
+            stuckCheckIntervalSec: outer.stuckCheckIntervalSec,
+            stuckOffsetRange: outer.stuckOffsetRange,
             observationConfig: outer.observationConfig,
             parentSimPort: port2,
             ckptDir: outer.ckptDir,
@@ -323,6 +327,8 @@ class HumanPlayer{
             playerPrefix, 
             canDigWhenMove: outer.canDigWhenMove,
             moveTimeoutSec: outer.moveTimeoutSec,
+            stuckCheckIntervalSec: outer.stuckCheckIntervalSec,
+            stuckOffsetRange: outer.stuckOffsetRange,
             observationConfig: outer.observationConfig,
             parentSimPort: port2,
             ckptDir: outer.ckptDir,
@@ -403,6 +409,8 @@ class BeliefSimulator{
         parentSimPort=null,
         canDigWhenMove=true,
         moveTimeoutSec=60,
+        stuckCheckIntervalSec=2,
+        stuckOffsetRange=0.5,
         observationConfig,
         ckptDir="ckpt",
         logDir="logs",
@@ -427,6 +435,8 @@ class BeliefSimulator{
         sim.playerPrefix = playerPrefix;
         sim.canDigWhenMove = canDigWhenMove;
         sim.moveTimeoutSec = moveTimeoutSec;
+        sim.stuckCheckIntervalSec = stuckCheckIntervalSec;
+        sim.stuckOffsetRange = stuckOffsetRange;
         sim.observationConfig = observationConfig;
         sim.ckptDir = ckptDir;
         sim.logDir = logDir;

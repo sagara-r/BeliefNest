@@ -191,7 +191,7 @@ class BeliefNestWrapper(MethodLogging):
 
         return branch_str
         
-    def load_from_template(self, belief_path, template, variables={}):
+    def load_from_template(self, belief_path, template, variables={}, extra_filters=[], allow_filter_override=False):
         branch_str = self.get_branch_str(belief_path)
 
         variables = dict(
@@ -199,7 +199,7 @@ class BeliefNestWrapper(MethodLogging):
             **{"branch": branch_str}
         )
 
-        return load_from_template(template, variables=variables)
+        return load_from_template(template, variables=variables, extra_filters=extra_filters, allow_filter_override=allow_filter_override)
     
     def get_sim_status(self, belief_path=None):
         if belief_path is None:

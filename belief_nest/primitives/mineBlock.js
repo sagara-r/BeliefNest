@@ -48,10 +48,23 @@ async function mineBlock(bot, blockPosition, blockName) {
         new GoalFollow(targetEntity, 1)
     );
 
+    let gotItemName;
+    switch(blockName){
+        case "iron_ore":
+            gotItemName = "raw_iron";
+            break;
+        case "diamond_ore":
+            gotItemName = "diamond";
+            break;
+        default: 
+            gotItemName = blockName;
+            break;
+    }
+
     const msgObj = {
         "name": "mineBlock",
         "pos": blockPosition.minus(bot.offsetVec3),
-        "blockName": blockName,
+        "blockName": gotItemName,
     };
     bot.emit("event", dumpToJson(msgObj));
 }

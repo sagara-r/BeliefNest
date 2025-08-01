@@ -28,8 +28,9 @@ class OnCraftItem extends Event {
             agentName: agentName,
             visible: {
                 itemName: event.itemName,
-                count: event.count,
+                producedCount: event.producedCount,
                 consumedItems: event.consumedItems,
+                craftingTablePos: event.craftingTablePos,
             },
             hidden: null
         });

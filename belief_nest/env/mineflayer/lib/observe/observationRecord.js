@@ -180,10 +180,11 @@ class ObservationRecord{
 
     _updateStatusMemory(status, events=[], hasInventoryInfo, positionMemoryMode="last_seen"){
         for(const agentName of Object.keys(this.bot.agentInfo)){
+            if(!this.memory.status[agentName]){
+                this.memory.status[agentName] = {visible: {}, hidden: {}};
+            }
+
             if(status[agentName]){
-                if(!this.memory.status[agentName]){
-                    this.memory.status[agentName] = {visible: {}, hidden: {}};
-                }
                 this.memory.status[agentName].visible = cloneObj(status[agentName].visible);
                 if(status[agentName].hidden){
                     this.memory.status[agentName].hidden = cloneObj(status[agentName].hidden);
@@ -192,9 +193,6 @@ class ObservationRecord{
                 switch(this.positionMemoryMode){
                     case "last_seen": break;
                     case "current":
-                        if(!this.memory.status[agentName]){
-                            this.memory.status[agentName] = {visible:{}, hidden:{}};
-                        }
                         this.memory.status[agentName].visible.position = null;
                         this.memory.status[agentName].visible.velocity = null;
                         this.memory.status[agentName].visible.yaw = null;
@@ -207,9 +205,6 @@ class ObservationRecord{
                 }
             }
 
-            if(!this.memory.status[agentName].hidden){
-                this.memory.status[agentName].hidden = {};
-            }
             if(!this.memory.status[agentName].hidden.inventory){
                 this.memory.status[agentName].hidden.inventory = {};
             }
@@ -246,7 +241,13 @@ class ObservationRecord{
                     add(this, e.agentName, e.visible.blockName, 1);
                     break;
                 case "craftItem":
-                    add(this, e.agentName, e.visible.itemName, e.visible.count);
+                    add(this, e.agentName, e.visible.itemName, e.visible.producedCount);
+                    for(const [name, count] of Object.entries(e.visible.consumedItems)){
+                        remove(this, e.agentName, name, count);
+                    } 
+                    break;
+                case "smeltItem":
+                    add(this, e.agentName, e.visible.producedItemName, e.visible.producedCount);
                     for(const [name, count] of Object.entries(e.visible.consumedItems)){
                         remove(this, e.agentName, name, count);
                     } 
@@ -264,6 +265,10 @@ class ObservationRecord{
                 case "giveItemToOther": 
                     remove(this, e.agentName, e.visible.itemName, e.visible.count);
                     add(this, e.visible.otherAgentName, e.visible.itemName, e.visible.count);
+                    break;
+                case "receiveItemFromOther": 
+                    add(this, e.agentName, e.visible.itemName, e.visible.count);
+                    remove(this, e.visible.otherAgentName, e.visible.itemName, e.visible.count);
                     break;
                 default: break;
             }

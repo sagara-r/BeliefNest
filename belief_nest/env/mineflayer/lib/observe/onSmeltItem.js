@@ -27,8 +27,11 @@ class OnSmeltItem extends Event {
             eventName: "smeltItem",
             agentName: agentName,
             visible: {
-                itemName: event.itemName,
-                count: event.count,
+                materialName: event.materialName,
+                producedCount: event.producedCount,
+                producedItemName: event.producedItemName,
+                consumedItems: event.consumedItems,
+                furnacePos: event.furnacePos,
             },
             hidden: null
         });

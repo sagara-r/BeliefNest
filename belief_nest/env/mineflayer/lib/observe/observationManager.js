@@ -14,6 +14,7 @@ const OnBlockUpdate = require('./onBlockUpdate');
 const OnChat = require('./onChat');
 const OnCraftItem = require('./onCraftItem');
 const OnGiveItemToOther = require('./onGiveItemToOther');
+const OnReceiveItemFromOther = require('./onReceiveItemFromOther');
 const OnMineBlock = require('./onMineBlock');
 const onMove = require('./onMove');
 const onSmeltItem = require('./onSmeltItem');
@@ -61,7 +62,7 @@ class ObservationManager{
         this.mode = null;
         this.isSchedulerActive = false;
         
-        const eventClasses = [OnBlockUpdate, OnChat, OnCraftItem, OnGiveItemToOther, OnMineBlock, onMove, onSmeltItem, OnThink, OnUseChest, OnUseLever];
+        const eventClasses = [OnBlockUpdate, OnChat, OnCraftItem, OnGiveItemToOther, OnReceiveItemFromOther, OnMineBlock, onMove, onSmeltItem, OnThink, OnUseChest, OnUseLever];
         this.eventInstances = {};
         for(const obsClass of eventClasses){
             this.eventInstances[obsClass.name] = new obsClass(bot, config[obsClass.name]);
@@ -636,7 +637,7 @@ class ObservationManager{
             }
             this.observation.objective.addHistoryObjective(globalTick, status, events, blocksToUpdate);
 
-            const playerVisibility = await getPlayerVisibility(this.bot, playerPositions, this.nonExistentAgentNames);
+            const playerVisibility = await getPlayerVisibility(this.bot, playerPositions, this.observation.objective.memory.blocks, this.mcData, this.nonExistentAgentNames, this.maxVisibleDistance);
             let blockVisibility = null;
             if(doBlockObs){
                 const startTime = performance.now();

@@ -452,12 +452,12 @@ def _event_to_description(e):
         goal_pos = e['visible']['goalPos']['__Vec3__']
         description = f"From {tuple(start_pos)} To {tuple(goal_pos)}"
     elif event_name == "craftItem":
-        description = f"Crafted {e['visible']['count']} {e['visible']['itemName']}(s)"
+        description = f"Crafted {e['visible']['producedCount']} {e['visible']['itemName']}(s)"
     elif event_name == "mineBlock":
         pos = e['visible']['pos']['__Vec3__']
         description = f"Mined 1 {e['visible']['blockName']} at {tuple(pos)}"
     elif event_name == "smeltItem":
-        description = f"Smelted {e['visible']['count']} {e['visible']['itemName']}(s)"
+        description = f"Smelted {e['visible']['materialName']} into {e['visible']['producedCount']} {e['visible']['producedItemName']}(s)"
     elif event_name == "think":
         description = f"thought that \"{e['hidden']['msg']}\""
     elif event_name == "useLever":
@@ -469,6 +469,11 @@ def _event_to_description(e):
         item_name = e['visible']['itemName']
         count = e['visible']['count']
         description = f"gave {count} {item_name} to {other_agent_name}"
+    elif event_name == "receiveItemFromOther":
+        other_agent_name = e['visible']['otherAgentName']
+        item_name = e['visible']['itemName']
+        count = e['visible']['count']
+        description = f"received {count} {item_name} from {other_agent_name}"
     #elif event_name == "emote":
     #    description = e['visible']['description']
     #elif event_name == "blockUpdate":
@@ -585,19 +590,36 @@ def initialize_observation_loader(ckpt_dir, t_agent_names):
     loader = ObservationLoader(ckpt_dir)
     agent_names = t_agent_names
 
-
-def load_from_template(template, variables={}): #, additional_filters={}):
+def get_loader():
     if not loader:
-        raise Exception("Call `initialize_observation_loader` before `calling load_from_template`.")
+        raise Exception("Call `initialize_observation_loader` before calling `get_loader`.")
+    return loader
+
+def get_agent_names():
+    if not agent_names:
+        raise Exception("Call `initialize_observation_loader` before calling `get_agent_names`.")
+    return agent_names
+
+def load_from_template(template, variables={}, extra_filters=[], allow_filter_override=False):
+    if not loader:
+        raise Exception("Call `initialize_observation_loader` before calling `load_from_template`.")
 
     env = Environment(
             undefined=StrictUndefined,
             trim_blocks=True,
             lstrip_blocks=True
         )
+    
+    extra_filter_dict = {f.__name__: f for f in extra_filters}
+
+    if not allow_filter_override:
+        overridden_keys = set(FILTER_DICT.keys()) & set(extra_filter_dict.keys())
+        if overridden_keys:
+            raise Exception(f"Cannot override filters. Set allow_filter_override=True to override filters. Overriden: {', '.join(overridden_keys)}")
+
     env.filters = dict(
             **FILTER_DICT,
-            #**additional_filters
+            **extra_filter_dict
         )
     template = env.from_string(template)
     rendered_content = template.render(variables)

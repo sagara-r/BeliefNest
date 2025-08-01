@@ -1,8 +1,11 @@
 const Vec3 = require('vec3');
 const { hasVec3NaN, Vec3BoolMap } = require('../utils');
 
-async function getPlayerVisibility(bot, playerRelativePositions, nonExistentAgentNames=[]){
+async function getPlayerVisibility(bot, playerRelativePositions, blockMemory, mcData, nonExistentAgentNames=[], maxDist=20){
     const height = new Vec3(0, bot.entity.height, 0);
+    const o = bot.offsetVec3;
+    const absEnvBox = [bot.envBox[0].plus(o), bot.envBox[1].plus(o)];
+
     let playerVisibility = {}
 
     for(const seeAgentName in playerRelativePositions){
@@ -16,31 +19,47 @@ async function getPlayerVisibility(bot, playerRelativePositions, nonExistentAgen
                 playerVisibility[seeAgentName][sawAgentName] = false;
             } else {
                 const sawAbsPos = playerRelativePositions[sawAgentName].plus(height).plus(bot.offsetVec3);
-                playerVisibility[seeAgentName][sawAgentName] = _visibleFromTo(bot, seeAbsPos, sawAbsPos)
+
+                const absMinX = Math.floor(Math.min(Math.max(seeAbsPos.x - maxDist, absEnvBox[0].x), absEnvBox[1].x));
+                const absMaxX = Math.floor(Math.max(Math.min(seeAbsPos.x + maxDist, absEnvBox[1].x), absEnvBox[0].x));
+                const absMinY = Math.floor(Math.min(Math.max(seeAbsPos.y - maxDist, absEnvBox[0].y), absEnvBox[1].y));
+                const absMaxY = Math.floor(Math.max(Math.min(seeAbsPos.y + maxDist, absEnvBox[1].y), absEnvBox[0].y));
+                const absMinZ = Math.floor(Math.min(Math.max(seeAbsPos.z - maxDist, absEnvBox[0].z), absEnvBox[1].z));
+                const absMaxZ = Math.floor(Math.max(Math.min(seeAbsPos.z + maxDist, absEnvBox[1].z), absEnvBox[0].z));
+                const size = new Vec3(absMaxX - absMinX + 1, absMaxY - absMinY + 1, absMaxZ - absMinZ + 1)
+
+                // Build a 3D occupancy grid (`occ`) representing occluding (vision-blocking) blocks only.
+                const occ = get_occupancy_grid(blockMemory, mcData, size, o, new Vec3(absMinX, absMinY, absMinZ));
+                playerVisibility[seeAgentName][sawAgentName] = rayVisible(seeAbsPos, sawAbsPos, new Vec3(absMinX, absMinY, absMinZ), occ, size);
             }            
         }
     }
     return playerVisibility;
 }
 
-function _visibleFromTo(bot, seePos, sawPos){
-    if(hasVec3NaN(seePos)){
-        throw new Error(`seePos cannot be NaN. seePos=${seePos}`);
-    }
-    if(hasVec3NaN(sawPos)){
-        throw new Error(`sawPos cannot be NaN. sawPos=${sawPos}`);
-    }
-    const toBlockVec = sawPos.minus(seePos);
-    const maxDist = toBlockVec.norm() + 0.01
-    const direction = toBlockVec.normalize() // destructive
+function get_occupancy_grid(blockMemory, mcData, size, offset, absMin){
+    const occ = new Uint8Array(size.x * size.y * size.z);
+    for (const [pos, b] of blockMemory.entries()) {
+        // Skip blocks with no collision (e.g., air, grass, flowers)
+        if (mcData.blocksByName[b.name].boundingBox === "empty") continue;
 
-    const hitBlock = bot.world.raycast(seePos, direction, maxDist);
-    if (!hitBlock) {
-        return true; // no blocks between players
+        // Skip transparent blocks
+        if(
+            ['glass', 'tinted_glass', 'glass_pane', 'barrier'].includes(b.name) ||
+            b.name.endsWith('_stained_glass') ||
+            b.name.endsWith('_stained_glass_pane')
+        ) continue;
+        
+        const absPos = pos.plus(offset);
+        const ix = absPos.x - absMin.x;
+        const iy = absPos.y - absMin.y;
+        const iz = absPos.z - absMin.z;
+        if (0 <= ix && ix < size.x && 0 <= iy && iy < size.y && 0 <= iz && iz < size.z) {
+            occ[ix + size.x * (iy + size.y * iz)] = 1;
+        }
     }
-    return false; // blocks exists between players
+    return occ;
 }
-
 
 /* playerPositions[agentName] = playerPosition (Vec3) */
 async function getBlockVisibility(bot, playerRelativePositions, blockMemory, mcData, nonExistentAgentNames=[], maxDist=20, useLegacyBlockVis=false){
@@ -70,18 +89,8 @@ async function getBlockVisibility(bot, playerRelativePositions, blockMemory, mcD
 
         const size = new Vec3(absMaxX - absMinX + 1, absMaxY - absMinY + 1, absMaxZ - absMinZ + 1)
 
-        const occ = new Uint8Array(size.x * size.y * size.z);
-        for (const [pos, b] of blockMemory.entries()) {
-            if (mcData.blocksByName[b.name].boundingBox === "empty") continue;
-            
-            const absPos = pos.plus(o);
-            const ix = absPos.x - absMinX;
-            const iy = absPos.y - absMinY;
-            const iz = absPos.z - absMinZ;
-            if (0 <= ix && ix < size.x && 0 <= iy && iy < size.y && 0 <= iz && iz < size.z) {
-              occ[ix + size.x * (iy + size.y * iz)] = 1;
-            }
-        }
+        // Build a 3D occupancy grid (`occ`) representing occluding (vision-blocking) blocks only.
+        const occ = get_occupancy_grid(blockMemory, mcData, size, o, new Vec3(absMinX, absMinY, absMinZ));
 
         if(!nonExistentAgentNames.includes(agentName)){
             for (let x = absMinX; x <= absMaxX; x++) 

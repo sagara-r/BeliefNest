@@ -8,12 +8,13 @@ services:
       - "25565:25565"
     environment:
       EULA: "TRUE"
-      TYPE: "FABRIC"
+#      TYPE: "FABRIC"
       VERSION: "1.19"
       ONLINE_MODE: "FALSE"
       LEVEL_TYPE: "flat"
       DIFFICULTY: "peaceful"
-      GENERATOR_SETTINGS: '{"layers":[{"block":"minecraft:bedrock","height":1},{"block":"minecraft:dirt","height":2},{"block":"minecraft:grass_block","height":1}],"biome":"minecraft:plains","structures":false}'
+      GENERATOR_SETTINGS: '{"layers":[{"block":"minecraft:bedrock","height":1},{"block":"minecraft:dirt","height":2},{"block":"minecraft:grass_block","height":1}],"biome":"minecraft:plains"}'
+      GENERATE_STRUCTURES: "false"
     volumes:
       - ./data:/data
     networks:
