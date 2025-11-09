@@ -16,7 +16,17 @@ from api_key import OPENAI_API_KEY
 CONFIG_FILE = "config.json"
 INITIAL_STATE_FILE = "state#-1.json"
 
+# Use container name (e.g., "mc_server") when running inside Docker on the same network
+# Use "localhost" when running outside Docker
+# Use "host.docker.internal" to access the host from inside Docker (only on Windows/macOS)
+MC_HOST = "mc_server"  
+#MC_HOST = "localhost"
 MC_PORT = 25565
+
+# Same rules apply for RabbitMQ
+MQ_HOST = "rabbitmq"
+#MQ_HOST = "localhost"
+
 SALLY_TASK = "Get a diamond from a chest."
 ANNE_TASK = "Help Sally."
 
@@ -85,18 +95,20 @@ def call_offset_llm(code):
 bn = BeliefNestWrapper(
     config=CONFIG,
     initial_state=INITIAL_STATE,
-    mc_port=MC_PORT, 
+    mc_host=MC_HOST,
+    mc_port=MC_PORT,
+    mq_host=MQ_HOST,
     ckpt_dir=str(ckpt_dir), 
     log_dir=str(log_dir), 
     logger=logger
 )
 
-bn.create_sim("/", "anne", [-12,0,-25], "a_")
-bn.create_sim("/anne", "sally", [-12,0,-50], "as_")
-bn.create_sim("/anne", "anne", [-37,0,-50], "aa_")
+bn.create_sim("/", "sally", [-12,0,-25], "s_")
+bn.create_sim("/sally", "anne", [-12,0,-50], "sa_")
 
-bn.create_sim("/", "sally", [12,0,-25], "s_")
-bn.create_sim("/sally", "anne", [12,0,-50], "sa_")
+bn.create_sim("/", "anne", [12,0,-25], "a_")
+bn.create_sim("/anne", "sally", [12,0,-50], "as_")
+bn.create_sim("/anne", "anne", [37,0,-50], "aa_")
 
 input("Simulators are created. Press ENTER to start scenario in real world.")
 

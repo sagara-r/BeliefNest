@@ -35,7 +35,7 @@ async function teleport({ bot, mcNameToTeleport, position, pitch, yaw, isRelativ
         bot.chat(command);
 
         const player = await getPlayer({bot, mcName:mcNameToTeleport})
-        const checkInterval = 0.2;
+        const checkInterval = 0.02;
 
         const horizontalTol = 1.0;
         const verticalTol = 3;
@@ -74,7 +74,7 @@ async function teleport({ bot, mcNameToTeleport, position, pitch, yaw, isRelativ
     });
 }
 
-async function setBlocks({ bot, blockInfoList, isRelative=true, setNumPerTick=60, timeout=50, leaf_persistent=false }){
+async function setBlocks({ bot, blockInfoList, isRelative=true, maxPlacementRate=60, timeout=50, leaf_persistent=false }){
 
     function isPropsUpdated(oldBlock, newBlockInfo){
         const props = oldBlock.getProperties();
@@ -140,7 +140,7 @@ async function setBlocks({ bot, blockInfoList, isRelative=true, setNumPerTick=60
                 console.log(msg)
 
                 setNum++;
-                if(setNum >= setNumPerTick){
+                if(setNum >= maxPlacementRate){
                     await bot.waitForTicks(1);
                     setNum = 0;
                 }
@@ -318,7 +318,7 @@ async function setEquipment({bot, agentName, equipment, mainhand=false, clear=fa
             item = "air";
         }
         bot.chat(`/item replace entity ${mcName} ${parts[i]} with ${item}`);
-        await bot.waitForTicks(1);
+        //await bot.waitForTicks(1);
     }
 
     const mainhandItem = equipment[4];

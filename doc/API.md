@@ -12,6 +12,7 @@
   * [execute\_mc\_commands\_by\_admin()](#execute_mc_commands_by_admin)
   * [switch\_branch()](#switch_branch)
   * [overwrite\_belief()](#overwrite_belief)
+  * [chat()](#chat)
   * [get\_branch\_str()](#get_branch_str)
   * [load\_from\_template()](#load_from_template)
   * [get\_sim\_status()](#get_sim_status)
@@ -184,6 +185,30 @@ Overwrites the state of the simulator.
 
 ---
 
+### chat
+
+Let a player chat. Mainly used for HumanPlayer.
+
+#### Parameters
+
+| Name                     | Type   | Default    | Description                                                               |
+| ------------------------ | ------ | ---------- | ------------------------------------------------------------------------- |
+| `belief_path`            | `str`  | (required) | The simulator that contains the player who will chat.                                          |
+| `agent_name`             | `str`  | (required) | Name of the agent who will chat.                                       |
+| `msg`                   | `str`  | (required) | The chat content.          |
+| `silent`			| `bool`   | `False`   | If `True`, the chat content will not be displayed on the game screen.|
+| `start_stop_observation` | `bool` | `True`     | Whether to automatically start and stop observation.                      |
+| `wait_sec`               | `int`  | `2`        | Seconds to wait after execution. A short delay may miss the final action. |
+
+#### Returns
+
+| Type   | Description                        |
+| ------ | ---------------------------------- |
+| `bool` | Whether execution was successful.  |
+| `str`  | Error message if execution failed. |
+
+---
+
 ### get\_branch\_str
 
 Returns a string representing the branch.
@@ -193,7 +218,7 @@ Example: `world[default].anne[b]`
 
 | Name          | Type  | Default    | Description                                |
 | ------------- | ----- | ---------- | ------------------------------------------ |
-| `belief_path` | `str` | (required) | Simulator whose branch string is returned. |
+| `belief_path` | `str` | (required) | Simulator whose branch string is returned. If you specify a simulator that does not exist, the result will be returned as if the simulator were in the follow branch. |
 
 #### Returns
 
@@ -211,9 +236,12 @@ Fills in belief information into a template and returns the resulting string.
 
 | Name          | Type   | Default    | Description                                                                    |
 | ------------- | ------ | ---------- | ------------------------------------------------------------------------------ |
-| `belief_path` | `str`  | (required) | Simulator providing the belief information. Assigned to the `branch` variable. |
+| `belief_path` | `str`  | (required) | Simulator providing the belief information. Assigned to the `branch` variable. If you specify a simulator that does not exist, the result will be returned as if the simulator were in the follow branch. |
 | `template`    | `str`  | (required) | Jinja2 template string.                                                        |
 | `variables`   | `dict` | `{}`       | Additional variables used in the template.                                     |
+| `extra_filters`				| `list`         | `[]`  			| Additional jinja2 filters.|
+| `allow_filter_override`				| `bool`         | `True`  			| If `True`, allows to override filters using extra_filters.|
+| `dump`				| `bool`         | `True`  			| If `True`, uses latest observations.|
 
 #### Returns
 
@@ -332,7 +360,9 @@ None
 | `staticBlockTypes` | `list[str]`       | (required) | List of block types whose positions are known initially. Later modifications to these blocks are treated like any other block.                    |
 | `adminAgentName`   | `str`             | (required) | Name of the admin player.                                                                                                                         |
 | `canDigWhenMove`   | `bool`            | (required) | If `True`, agents are allowed to break blocks when moving.                                                                                        |
-| `moveTimeoutSec`   | `int`             | (required) | Timeout duration (seconds) for agent movement.                                                                                                    |
+| `moveTimeoutSec`         | `int`   | 60   | Timeout duration (seconds) for agent movement.   |
+| `stuckCheckIntervalSec`  | `float` | 2    | Interval in seconds for stuck detection. |
+| `stuckOffsetRange`       | `float` | 0.5  | Maximum movement distance in blocks for stuck detection. |
 | `players`          | `dict`            | (required) | Player information. See [below](#players).                                                                                                        |
 | `observation`      | `dict`            | (required) | Observation-related options. See [below](#observation).                                                                                           |
 
@@ -362,6 +392,9 @@ Example:
 | `maxVisibleDistance`       | `int`  | `20`    | Maximum distance agents can observe.                                                                    |
 | `disablePositionFiltering` | `bool` | `False` | If `True`, all agent positions are shared among all agents.                                             |
 | `useLegacyBlockVis`        | `bool` | `False` | If `True`, uses the older block visibility function. Slower but considers approximate shapes of blocks. |
+| `extraTransparentBlocks`   | `list[str]` | `[]` | List of additional blocks to treat as transparent. Regardless of this setting, blocks named 'barrier', 'ice', and those containing 'glass' in their names are always treated as transparent. |
+| `maxPlacementRate` | `int` | `60` | The maximum number of blocks that can be placed per tick. A larger value speeds up processing, but also increases the likelihood of the program crashing when blocks are being placed simultaneously in multiple simulators. |
+| `initialContainerState` | `dict[str, list]` | `{}` | Initial beliefs about chests. The key is the agent name, and the value is a list of dictionaries representing each chest. Each dictionary has two keys: `position` and `items`. The value of `position` is a list of three integers representing the chest's location, and the value of `items` is a dictionary where the keys are item names and the values are their quantities. Example: `{"sally":[{"position":[1,-55,5], "items": {"diamond":3}}]}` |
 
 ---
 

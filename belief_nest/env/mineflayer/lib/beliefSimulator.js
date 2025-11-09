@@ -3,7 +3,7 @@ const path = require('path');
 const log4js = require('log4js');
 
 const { McWorldManager } = require('./mcWorldManager');
-const { LoggingWrapper, PersistentWorker, buildBranchCkptDir, copyFiles, containsInvalidCharacters } = require('./utils');
+const { LoggingWrapper, PersistentWorker, buildBranchCkptDir, copyFiles, containsInvalidCharacters, sleep_ms } = require('./utils');
 const { isReadable } = require('stream');
 
 BOTWORKER_FILE = __dirname + "/botWorker.js"
@@ -149,6 +149,7 @@ class BotPlayer{
                 doUpdateAgentInfo: false
             });
             promises.push(p);
+            await sleep_ms(200);
         }
         for(const p of promises){
             await p;
@@ -242,6 +243,11 @@ class BotPlayer{
         await this.postMessageToWorker("teleport", {mcNameToTeleport:mcName, position, pitch, yaw, timeout})
     }
 
+    async chat({msg, silent}){
+        // Ignore "silent". It's for HumanPlayer.
+        await this.postMessageToWorker("chat", {msg});
+    }
+
     async clearBox(){
         if(!this.isAdmin){
             throw new Error("clearBox is only for admin player.")    
@@ -289,6 +295,7 @@ class HumanPlayer{
         player.mcName = agentName;
         player.agentName = agentName;
         player.outerSim = outerSim;
+        player.childSim = null;
 
         player.logger = log4js.getLogger(`${player.outerSim.logger.category}.${player.agentName}`)
 
@@ -383,6 +390,12 @@ class HumanPlayer{
 
     async close(){
         await this.leave();
+    }
+
+    async chat({msg, silent=false}){
+        const agentName = this.agentName;
+        const adminBot = this.outerSim.adminBot;
+        await adminBot.postMessageToWorker("proxyChat", {agentName, msg, silent});
     }
 }
 
@@ -617,7 +630,8 @@ class BeliefSimulator{
         this.branchPath = branchPath;
         const newBranchCkptDir = buildBranchCkptDir(this.ckptDir, this.parentPlayers, branchPath);
 
-        if(!fs.existsSync(newBranchCkptDir)){
+        const isNewBranch = !fs.existsSync(newBranchCkptDir);
+        if(isNewBranch){
             fs.mkdirSync(newBranchCkptDir, { recursive: false });
 
             copyFiles(oldBranchCkptDir, newBranchCkptDir);
@@ -628,7 +642,7 @@ class BeliefSimulator{
         }
         
         const promises = [];
-        let p = this.updateBranchCkptDir(newBranchCkptDir);
+        let p = this.updateBranchCkptDir(newBranchCkptDir, isNewBranch);
         promises.push(p);
 
         for(const agentName in this.players){
@@ -830,8 +844,8 @@ class BeliefSimulator{
         await this.adminBot.controlObservation({subcommand:"switchMode", args:{mode}});
     }
 
-    async updateBranchCkptDir(branchCkptDir){
-       await this.adminBot.controlObservation({subcommand:"updateBranchCkptDir", args: {branchCkptDir}});
+    async updateBranchCkptDir(branchCkptDir, isNewBranch){
+       await this.adminBot.controlObservation({subcommand:"updateBranchCkptDir", args: {branchCkptDir, isNewBranch}});
     }
 
     async updateOffset(offset){

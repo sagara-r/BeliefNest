@@ -4,7 +4,8 @@ class OnChat extends Event {
     static name = "OnChat";
     constructor(bot, args) {
         super(bot, OnChat.name, "player");
-        this.observeBound = this.onUpdate.bind(this);
+        this.chatHandler = this.onChatEvent.bind(this);
+        this.proxyChatHandler = this.onProxyChatEvent.bind(this);
 
         if(!args){
             args = {}
@@ -13,14 +14,29 @@ class OnChat extends Event {
     }
 
     async start(){
-        this.bot.on('chat', this.observeBound);
+        this.bot.on('chat', this.chatHandler);
+        this.bot.on('proxyChat', this.proxyChatHandler);
     }
 
     async stop(){
-        this.bot.removeListener('chat', this.observeBound);
+        this.bot.removeListener('chat', this.chatHandler);
+        this.bot.removeListener('proxyChat', this.proxyChatHandler);
     }
 
-    async onUpdate(mcName, msg) {
+    async record(agentName, msg){
+        const obs = {
+            eventName: "chat",
+            visible: {"agentName": agentName, "msg":msg},
+            hidden: null
+        };
+        if(this.visibilityBasedHearing){
+            obs.agentName = agentName;
+        }
+
+        this.obs.push(obs);
+    }
+
+    async onChatEvent(mcName, msg) {
         if(msg.startsWith("/")){
             return;
         }
@@ -36,16 +52,13 @@ class OnChat extends Event {
             return;
         }
 
-        const obs = {
-            eventName: "chat",
-            visible: {"agentName": agentName, "msg":msg},
-            hidden: null
-        };
-        if(this.visibilityBasedHearing){
-            obs.agentName = agentName;
-        }
+        await this.record(agentName, msg);
+    }
 
-        this.obs.push(obs);
+    // admin emits directly
+    async onProxyChatEvent(agentName, msg){
+        console.log("onProxyChatEvent");
+        await this.record(agentName, msg);
     }
 }
 

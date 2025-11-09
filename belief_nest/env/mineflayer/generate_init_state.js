@@ -45,12 +45,12 @@ async function generate_init_state(){
 
     await input(`envBox ${JSON.stringify(envBox)}  Write in the config.json when executing BeliefNest. Press ENTER to continue.`)
 
-    await input(`Execute "/op operator" in the server terminal, and press ENTER.`)
+    await input(`Execute "/op opmanager" in the server terminal, and press ENTER.`)
 
     const bot = mineflayer.createBot({
         host: mcHost,
         port: mcPort,
-        username: "operator",
+        username: "opmanager",
         disableChatSigning: true,
         checkTimeoutInterval: 60 * 60 * 1000,
     });

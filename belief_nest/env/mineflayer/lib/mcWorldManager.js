@@ -5,7 +5,7 @@ class McWorldManager{
     constructor(){
         this.mcWorlds = {};
         this.inverseDict = {};
-        this.operatorMcName = "operator";
+        this.operatorMcName = "opmanager";
     }
     
     async addSim(beliefPath, mcHost, mcPort, adminMcName){

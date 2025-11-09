@@ -74,11 +74,11 @@ docker run -it --rm --network bnnet --name rabbitmq -p 5672:5672 -p 15672:15672 
 
   After joining the world, run the following commands in the terminal:
   ```
-  op operator
+  op opmanager
   op xxx
   gamemode creative xxx
   ```
-  Replace `xxx` with your Minecraft username. This will grant operator privileges to your user and the `operator` user used by BeliefNest, enabling the use of various commands. If you reuse the same server later, you do not need to run these commands again.
+  Replace `xxx` with your Minecraft username. This will grant operator privileges to your user and the `opmanager` user used by BeliefNest, enabling the use of various commands. If you reuse the same server later, you do not need to run these commands again.
 
   In Minecraft, press the spacebar twice quickly to start flying. Use WASD and Shift to move around.
 
@@ -127,7 +127,7 @@ Some portions of the code are adapted from [MineDojo/Voyager](https://github.com
 # Citation
 ```bibtex
 @article{sagara2025beliefnest,
-  title={BeliefNest: A Joint Action Simulator for Embodied Agents with Theory of Mind},
+  title={{BeliefNest}: A Joint Action Simulator for Embodied Agents with Theory of Mind},
   author={Rikunari Sagara, Koichiro Terao, Naoto Iwahashi},
   year={2025},
   journal={arXiv preprint arXiv:2505.12321}

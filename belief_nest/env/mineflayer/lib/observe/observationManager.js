@@ -4,7 +4,7 @@ const AsyncLock = require('async-lock');
 const Vec3 = require('vec3');
 const amqp = require('amqplib');
 
-const { hasVec3NaN, cloneObj, dumpToJson, loadFromJson, mergeSortedMapJsonStrings } = require('../utils');
+const { hasVec3NaN, cloneObj, dumpToJson, loadFromJson, mergeSortedMapJsonStrings, sleep_ms } = require('../utils');
 const { teleport, setBlocks, clearBox, setContainer, setEquipment, setInventoryAndEquipment, enableTransparency, disableTransparency } = require('../mcUtils');
 const ObservationRecord = require('./observationRecord');
 const { getStatus } = require('./status');
@@ -31,6 +31,7 @@ class ObservationManager{
         this.parentSimPort = parentSimPort;
         this.branchCkptDir = branchCkptDir;
         this.staticBlockTypes = staticBlockTypes;
+        this.parentAgentNames = parentAgentNames;
         this.logger = logger;
 
         config = config ? config : {};
@@ -39,6 +40,9 @@ class ObservationManager{
         this.maxVisibleDistance = config.maxVisibleDistance || 20
         this.disablePositionFiltering = config.disablePositionFiltering !== undefined ? config.disablePositionFiltering : false;
         this.useLegacyBlockVis = config.useLegacyBlockVis ?? false;
+        this.extraTransparentBlocks = config.extraTransparentBlocks ?? [];
+        this.maxPlacementRate = config.maxPlacementRate ?? 60;
+        this.initialContainerState = config.initialContainerState ?? {};
 
         // this.positionMemoryMode = config.positionMemoryMode || "last_seen"; // "last_seen", "current"
         this.positionMemoryMode = "last_seen"
@@ -75,7 +79,7 @@ class ObservationManager{
         this.childSimPorts = {};
         this.childRequests = {};
         this.sendDataBound = this.sendDataToChildSim.bind(this);
-        this.sendDataIntervalHandler = setInterval(this.sendDataBound, 50);
+        this.sendDataIntervalHandler = setInterval(this.sendDataBound, 1);
 
         this.stopFollowTick = null;
         this.replyFromParent = {};
@@ -88,12 +92,15 @@ class ObservationManager{
         this._connectMq();
         this.AGENT_CONTROLL_EXCHANGE = parentAgentNames.join("-") + "_agent_control";
         this.AGENT_DATA_QUEUE = parentAgentNames.join("-") + "_agent_data";
+        this.CHAT_EXCHANGE = parentAgentNames.join("-") + "_chat";
 
         this.blockOverwriteQueue = [];
 
         this.followModeCache = {};
 
-        this.mcData = require("minecraft-data")(this.bot.version);
+        this.mcData    = require("minecraft-data")(this.bot.version);
+        const registry = require('prismarine-registry')(this.bot.version)
+        this.Block     = require('prismarine-block')(registry)
     }
 
     async _connectMq(){
@@ -148,9 +155,13 @@ class ObservationManager{
                 for(const eventInstance of Object.values(this.eventInstances)){
                     eventInstance.start();
                 }
+                let tickCounter = 0;
                 while(!this.mqConn){
-                    this.logger.info("Waiting for rabbitMQ connection ready...");
-                    await this.bot.waitForTicks(10);
+                    while(tickCounter % 100 == 0){
+                        this.logger.info("Waiting for rabbitMQ connection ready...");
+                    }
+                    await sleep_ms(10);
+                    tickCounter++;
                 }
                 this.mqChannel.publish(this.AGENT_CONTROLL_EXCHANGE, '', Buffer.from("start"));
                 break;
@@ -159,7 +170,7 @@ class ObservationManager{
                 this.historyQueueToFollow = [];
         
                 this.requestDataToParent(this.globalTick);
-                this.followIntervalHandler = setInterval(this.follow.bind(this), 50);
+                this.followIntervalHandler = setInterval(this.follow.bind(this), 1);
                 break;
 
             case null: throw new Error(`Set mode before starting.`);
@@ -174,6 +185,35 @@ class ObservationManager{
         this.logger.debug("Calling: obsevationManager.stop()");
 
         if(this.isSchedulerActive){
+            // Check if the observation cache is empty
+            const checkTimeoutHandler = setTimeout(()=>{
+                throw new Error("Timed out. Event cache must be empty to dump observation when checkObserved=true.");
+            }, 5*1000);
+
+            let loopCount = 0;
+            while(true){
+                let shouldContinue = false;
+                for(const eventInstance of Object.values(this.eventInstances)){
+                    if(eventInstance.cacheLength() > 0){
+                        shouldContinue = true;
+                        break;
+                    }
+                }
+                if(!shouldContinue){
+                    break;
+                }
+                if(loopCount % 1000 == 0){
+                    this.logger.info("Waiting for the observation cache to empty.");
+                }
+                await sleep_ms(1);
+                loopCount++;
+            }
+            clearTimeout(checkTimeoutHandler);
+            if(loopCount > 0){
+                this.logger.info("Observation cache is now empty. Proceed.");
+            }
+
+            // main
             this.isSchedulerActive = false;
             switch(this.mode){
                 case "observe":
@@ -183,9 +223,13 @@ class ObservationManager{
                     }
             
                     if(this.isObserving){
+                        let loopCount = 0;
                         while(this.isObserving){
-                            this.logger.info(`Waiting for completing observation...`);
-                            await this.bot.waitForTicks(1);
+                            if(loopCount % 1000 == 0){
+                                this.logger.info(`Waiting for completing observation...`);
+                            }
+                            await sleep_ms(1);
+                            loopCount++;
                         }
                         this.logger.info(`Observation completed.`);
                     }
@@ -193,15 +237,21 @@ class ObservationManager{
                     break;
     
                 case "follow":
+                    this.logger.debug(`stop following... isFollowing=${this.isFollowing} QueueLength=${this.historyQueueToFollow.length} force=${force}`);
                     if(!force && (this.historyQueueToFollow.length > 0 || this.isFollowing)){
+                        let tickCounter = 0;
                         while(this.historyQueueToFollow.length > 0 || this.isFollowing){
-                            this.logger.info(`Waiting for completing following... Queue length=${this.historyQueueToFollow.length}`);
-                            await this.bot.waitForTicks(10);
+                            if(tickCounter % 1000 == 0){
+                                this.logger.info(`Waiting for completing following... Queue length=${this.historyQueueToFollow.length}`);
+                            }
+                            await sleep_ms(1);
+                            tickCounter++;                            
                         }
                         this.logger.info("Following completed.");
                     }
                     clearInterval(this.followIntervalHandler);
                     this.followIntervalHandler = null;
+                    // Note that this.isFollow keeps true if force=true.
                     break;
     
                 default: throw new Error(`Invalid mode ${mode}`);
@@ -229,9 +279,13 @@ class ObservationManager{
                 throw new Error(`endTick for dump() is only for follow mode.`);
             }
             if(this.isSchedulerActive){
+                let tickCounter = 0;
                 while(this.isSchedulerActive){
-                    this.logger.info(`Waiting for following completed (now ${this.globalTick} < target ${this.stopFollowTick})...`)
-                    await this.bot.waitForTicks(10);
+                    if(tickCounter % 1000 == 0){
+                        this.logger.info(`Waiting for following completed (now ${this.globalTick}, target ${this.stopFollowTick})...`)
+                    }
+                    await sleep_ms(1);
+                    tickCounter++;
                 }
                 this.logger.info("following completed.");
             }
@@ -258,6 +312,8 @@ class ObservationManager{
             fs.mkdirSync(path.join(this.branchCkptDir, ".internal"), { recursive: true });
 
             async function dumpToFile(self, obj, dir_, prefix, tick){
+                self.logger.trace(`Calling: dumpToFile  prefix=${prefix} tick=${tick}`);
+
                 const stateFilename = `${prefix}state#${tick}.json`
                 const historyFilename = `${prefix}history#${tick}.json`
 
@@ -273,23 +329,37 @@ class ObservationManager{
                         prevTick = tmp;
                     } else {
                         self.logger.warn(`History File of ${prefix} at tick ${tick} already exists. Dump skipped.`);
+                        self.logger.trace(`Finished: dumpToFile  prefix=${prefix} tick=${tick}`);
                         return;    
                     }
                 }
 
-                const {stateJsonStr, historyJsonStr} = obj.toFormattedStrings(prevTick+1);
+                const {stateJsonStr, historyJsonStr} = obj.toFormattedStrings({startTick:prevTick+1, ignoreKeys:["stateId"]});
 
                 const stateFilepath = path.join(dir_, stateFilename);
+                self.logger.trace(`Start Writing "${stateFilepath}"`);
                 fs.writeFileSync(stateFilepath, stateJsonStr);
+                self.logger.trace(`Finish Writing "${stateFilepath}"`);
 
                 const historyFilepath = path.join(dir_, historyFilename);
+                self.logger.trace(`Start Writing "${stateFilepath}"`);
                 fs.writeFileSync(historyFilepath, historyJsonStr);
+                self.logger.trace(`Finish Writing "${historyFilepath}"`);
+
+                self.logger.trace(`Finished: dumpToFile  prefix=${prefix} tick=${tick}`);
             }
 
-            await dumpToFile(this, this.observation.objective, this.branchCkptDir, "", now);
+            let task;
+            const tasks = [];
+
+            task = dumpToFile(this, this.observation.objective, this.branchCkptDir, "", now);
+            tasks.push(task);
             for(const agentName in this.observation.subjective){
-                await dumpToFile(this, this.observation.subjective[agentName], path.join(this.branchCkptDir, `.internal`), `${agentName}#`, now);
+                task = dumpToFile(this, this.observation.subjective[agentName], path.join(this.branchCkptDir, `.internal`), `${agentName}#`, now);
+                tasks.push(task);
             }
+
+            await Promise.all(tasks);
         }
 
         if(shouldResume){
@@ -301,7 +371,7 @@ class ObservationManager{
         return {tick:now};
     }
 
-    async load({doInitialize=true}={}){
+    async load({doInitialize=true, doInitializeBlocks=true}={}){
         this.logger.debug("Calling: obsevationManager.load()");
         if(this.isSchedulerActive){
             await this.stop();
@@ -321,17 +391,21 @@ class ObservationManager{
 
         if(this.globalTick === -1){
             const stateJsonStr = fs.readFileSync(path.join(this.branchCkptDir, filename), 'utf8');
-            this.observation.objective.fromFormattedStrings(stateJsonStr);
+            this.observation.objective.fromFormattedStrings(stateJsonStr, null, this.Block);
 
             fs.mkdirSync(path.join(this.branchCkptDir, ".internal"), {recursive: true});
 
             /* initialize block state of agents */
             const blockState = this.observation.objective.getBlockMemory(this.staticBlockTypes);
+            const isWorld = (this.parentAgentNames.length == 0);
             for(const agentName of agentNameList){
                 this.observation.subjective[agentName] = new ObservationRecord(this.bot, this.positionMemoryMode, this.logger, agentName);
                 this.observation.subjective[agentName].setBlockMemory(blockState.deepcopy());
+                if(isWorld && this.initialContainerState[agentName]){
+                    this.observation.subjective[agentName].overwriteState([], this.initialContainerState[agentName]);
+                }
 
-                const {stateJsonStr} = this.observation.subjective[agentName].toFormattedStrings();
+                const {stateJsonStr} = this.observation.subjective[agentName].toFormattedStrings({ignoreKeys:["stateId"]});
                 const stateFilepath = path.join(this.branchCkptDir, `.internal\\${agentName}#state#-1.json`);
                 fs.writeFileSync(stateFilepath, stateJsonStr);
             }
@@ -359,7 +433,7 @@ class ObservationManager{
                 } catch(e){
                     throw new Error(`File ${filename} in ${dir_} does not exist.`);
                 }
-                obj.fromFormattedStrings(stateJsonStr, mergedHistoryJsonStr)
+                obj.fromFormattedStrings(stateJsonStr, mergedHistoryJsonStr, self.Block);
             }
 
             loadFromFiles(this, this.branchCkptDir, "", this.observation.objective);
@@ -371,19 +445,26 @@ class ObservationManager{
 
         if(doInitialize){
             /* blocks */
-            await clearBox({bot:this.bot});
-            const blockInfoList = [];
-            for(const [pos, block] of this.observation.objective.memory.blocks.entries()){
-                if(block.name === "air"){
-                    continue;
+            if(doInitializeBlocks){
+                await clearBox({bot:this.bot});
+                const blockInfoList = [];
+                for(const [pos, block] of this.observation.objective.memory.blocks.entries()){
+                    if(block.name === "air"){
+                        continue;
+                    }
+                    blockInfoList.push({
+                        position: pos,
+                        name: block.name,
+                        properties: block.properties,
+                        stateId: block.stateId
+                    })
                 }
-                blockInfoList.push({
-                    position: pos,
-                    name: block.name,
-                    properties: block.properties
-                })
+                await setBlocks({
+                    bot:this.bot, 
+                    blockInfoList, 
+                    maxPlacementRate: this.maxPlacementRate,
+                });
             }
-            await setBlocks({bot:this.bot, blockInfoList});
 
             /* containers */
             const promises = []
@@ -418,12 +499,13 @@ class ObservationManager{
                     this.nonExistentAgentNames.push(agentName);
                 }
 
-                await setInventoryAndEquipment({
+                p = setInventoryAndEquipment({
                     bot: this.bot,
                     agentName,
                     inventory: agentStatus?.hidden?.inventory,
                     equipment: agentStatus?.visible.equipment,
                 });
+                promises.push(p);
 
                 /*
                 await setInventory({
@@ -610,6 +692,16 @@ class ObservationManager{
                 }
                 const specificEvents = eventInstance.get();
                 events = events.concat(specificEvents);
+
+                if(eventInstance.name === "OnChat"){
+                    for(const e of specificEvents){
+                        const chatInfo = {
+                            agentName: e.visible.agentName,
+                            msg: e.visible.msg,
+                        }
+                        this.mqChannel.publish(this.CHAT_EXCHANGE, '', Buffer.from(JSON.stringify(chatInfo)));
+                    }
+                }
             }
 
             if(events.length){
@@ -625,7 +717,8 @@ class ObservationManager{
                     blocksToUpdate.push({
                         position: e.blockPos,
                         name: e.visible.name,
-                        properties: e.visible.properties
+                        properties: e.visible.properties,
+                        stateId: e.visible.stateId
                     });
                 }
             }
@@ -637,11 +730,11 @@ class ObservationManager{
             }
             this.observation.objective.addHistoryObjective(globalTick, status, events, blocksToUpdate);
 
-            const playerVisibility = await getPlayerVisibility(this.bot, playerPositions, this.observation.objective.memory.blocks, this.mcData, this.nonExistentAgentNames, this.maxVisibleDistance);
+            const playerVisibility = await getPlayerVisibility(this.bot, playerPositions, this.observation.objective.memory.blocks, this.mcData, this.Block, this.nonExistentAgentNames, this.maxVisibleDistance, this.extraTransparentBlocks);
             let blockVisibility = null;
             if(doBlockObs){
                 const startTime = performance.now();
-                blockVisibility = await getBlockVisibility(this.bot, playerPositions, this.observation.objective.memory.blocks, this.mcData, this.nonExistentAgentNames, this.maxVisibleDistance, this.useLegacyBlockVis);
+                blockVisibility = await getBlockVisibility(this.bot, playerPositions, this.observation.objective.memory.blocks, this.mcData, this.Block, this.nonExistentAgentNames, this.maxVisibleDistance, this.useLegacyBlockVis, this.extraTransparentBlocks);
                 const elapsedTime = Math.round(performance.now() - startTime);
                 if(elapsedTime > this.blockObsInterval*50){
                     this.logger.warn(`Getting visible blocks took ${elapsedTime} ms while block observation interval is set ${this.blockObsInterval*50} ms. Consider increasing the interval.`);
@@ -707,10 +800,11 @@ class ObservationManager{
             }
 
             const ticks = this.observation.subjective[agentName].getTicksInRange(prevTick+1, this.globalTick);
-            this.logger.trace(`agentname=${agentName} startTick=${prevTick+1}, now=${this.globalTick}. ticks.length=${ticks.length}, ${ticks.length ? `ticks=[${ticks[0]}...${ticks.slice(-1)[0]}]` : ""}`)
             if(ticks.length === 0){
+                this.logger.trace(`Processing data fetch request from childSim(agentname=${agentName}, startTick=${prevTick+1}). Now=${this.globalTick}. Returns no data.`)
                 continue;
             }
+            this.logger.trace(`Processing data fetch request from childSim(agentname=${agentName}, startTick=${prevTick+1}). Now=${this.globalTick}. Returning data (ticks=[${ticks[0]}...${ticks.slice(-1)[0]}], length=${ticks.length}).`)
             
             const data = [];
             for(const t of ticks){
@@ -762,6 +856,7 @@ class ObservationManager{
                         throw new Error("lastTick is undefined.")
                     }
                     this.historyQueueToFollow.push(...data);
+                    this.logger.trace(`received data from parent (until tick ${lastTick})`);
                 } else {
                     lastTick = this.globalTick;
                 }
@@ -795,9 +890,13 @@ class ObservationManager{
                 await this.stop({force:true});
                 
                 this.cancelRequestToParent();
+                let tickCounter = 0;
                 while(!this.replyFromParent.fetch_cancel){
-                    this.logger.info(`Waiting for canceling the request...`);
-                    await this.bot.waitForTicks(10);
+                    if(tickCounter % 1000 == 0){
+                        this.logger.info(`Waiting for canceling the request...`);
+                    }
+                    await sleep_ms(1);
+                    tickCounter++;
                 }
                 this.logger.info(`Request is successfully canceled. ${JSON.stringify(this.replyFromParent.fetch_cancel)}`)
                 delete this.replyFromParent.fetch_cancel;
@@ -821,6 +920,7 @@ class ObservationManager{
                         await this.stop({force:true});
                         this.stopFollowTick = null;
                         this.isFollowing = false;
+                        this.logger.trace(`Follow process until tick ${this.globalTick} done (queue length=${length})`);
                         return;
                     }
                 }
@@ -856,11 +956,12 @@ class ObservationManager{
                 const setBlocksPromise = setBlocks({
                     bot: this.bot,
                     blockInfoList: blocksToUpdate,
-                    leaf_persistent: true
+                    leaf_persistent: true,
+                    maxPlacementRate: this.maxPlacementRate,
                 });
                 const promises = []
                 let p;
-                if(i === length - 1){
+                if(i === length - 1 && this.stopFollowTick === null){
                     const agentState = this.observation.objective.memory.status;
                     for(const agentName in agentState){
                         /* position */
@@ -895,13 +996,14 @@ class ObservationManager{
 
                         const equipment = agentState[agentName]?.visible.equipment;
                         if(equipment){
-                            await setEquipment({
+                            p = setEquipment({
                                 bot: this.bot,
                                 agentName,
                                 equipment,
                                 clear: false,
                                 mainhand: true,
                             });
+                            promises.push(p);
                         }
 
                         /*
@@ -1066,13 +1168,33 @@ class ObservationManager{
         this.stopFollowTick = tick;
     }
 
-    async updateBranchCkptDir({branchCkptDir}){
+    async updateBranchCkptDir({branchCkptDir, isNewBranch}){
         this.branchCkptDir = branchCkptDir;
 
-        await this.load();
+        let args = {};
+        if(isNewBranch){
+            if(this.mode === "observe"){
+                args = {doInitialize: false}
+            } else if(this.mode === "follow") {
+                args = {doInitialize: true, doInitializeBlocks: false}
+            } else {
+                throw new Error(`Invalid mode "${this.mode}".`);
+            }
+        }
+
+        await this.load(args);
     }
 
     async overwriteState({blockState, containerState/*, agentState*/}){
+        
+        /* add stateId */
+        for(let i = 0; i < blockState.length; i++){
+            const b = blockState[i];
+            if(b.stateId === undefined){
+                blockState[i].stateId = this.Block.fromProperties(b.name, b.properties || {}, 0).stateId;
+            }
+        }
+
         await this.observation.objective.overwriteState(blockState, containerState/*, agentState*/);
 
         let success = true;
@@ -1087,6 +1209,7 @@ class ObservationManager{
                     const blockInfo = {
                         position: new Vec3(b.position[0], b.position[1], b.position[2]),
                         name: b.name,
+                        stateId: b.stateId,
                     }
                     if(b.properties){
                         blockInfo.properties = b.properties;
@@ -1095,7 +1218,8 @@ class ObservationManager{
                 }
                 await setBlocks({
                     bot: this.bot, 
-                    blockInfoList
+                    blockInfoList,
+                    maxPlacementRate: this.maxPlacementRate,
                 });
 
                 await lock.acquire("blockOverwrite", () => {
@@ -1158,6 +1282,17 @@ class ObservationManager{
     async close(){
         clearInterval(this.sendDataIntervalHandler, this.sendDataBound);
         await this.stop({force:true});
+        if(this.isFollowing){
+            let tickCounter = 0;
+            while(this.isFollowing){
+                if(tickCounter % 100 == 0){
+                    this.logger.info("close(): Waiting for completing following...");
+                }
+                await sleep_ms(10);
+                tickCounter++;
+            }
+            this.logger.info("close(): Following completed.");
+        }
         this.mqChannel.close();
         this.mqConn.close();
     }

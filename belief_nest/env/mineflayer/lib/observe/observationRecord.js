@@ -25,7 +25,7 @@ class ObservationRecord{
     }
 
     addHistoryObjective(tick, status, events, blocksToUpdate, visibility=null){
-        //this.logger.trace(`Calling: ObservationRecord.addHistoryObjective()  tick=${tick}  agentName=(objective)`);
+        this.logger.trace(`Calling: ObservationRecord.addHistoryObjective()  tick=${tick}  agentName=(objective)`);
         if(this.type === "subjective"){
             throw new Error("Cannot call addHistoryObjective because this.type===\"subjective\"");
         }
@@ -43,7 +43,7 @@ class ObservationRecord{
         this._updateStatusMemory(status, events, hasInventoryInfo);
 
         for(const b of blocksToUpdate){
-            this.memory.blocks.set(b.position, {name: b.name, properties: b.properties});
+            this.memory.blocks.set(b.position, {name: b.name, properties: b.properties, stateId: b.stateId});
         }
 
         this._updateContainerMemory(events, blocksToUpdate);
@@ -62,11 +62,11 @@ class ObservationRecord{
         }
         this.history.set(tick, historyAtT);
 
-        //this.logger.trace(`Finished: ObservationRecord.addHistoryObjective()  tick=${tick}  agentName=(objective)`);
+        this.logger.trace(`Finished: ObservationRecord.addHistoryObjective()  tick=${tick}  agentName=(objective)`);
     }
 
     addHistorySubjective(tick, status, events, playerVisibilityFromAgent, blockVisibilityFromAgent=null, objectiveBlockMemory){
-        //this.logger.trace(`Calling: ObservationRecord.addHistorySubjective()  tick=${tick}  agentName=${this.agentName}`);
+        this.logger.trace(`Calling: ObservationRecord.addHistorySubjective()  tick=${tick}  agentName=${this.agentName}`);
         if(this.type === "objective"){
             throw new Error("Cannot call addHistoryObjective because this.type===\"objective\"");
         }
@@ -85,7 +85,8 @@ class ObservationRecord{
                         updatedBlocks.push({
                             position: visiblePos,
                             name: objectiveMemoryBlock.name,
-                            properties: objectiveMemoryBlock.properties
+                            properties: objectiveMemoryBlock.properties,
+                            stateId: objectiveMemoryBlock.stateId
                         });
                     }
                 }
@@ -110,7 +111,7 @@ class ObservationRecord{
         // add history
         this.history.set(tick, { events, status, visibility, updatedBlocks });
 
-        //this.logger.trace(`Finished: ObservationRecord.addHistorySubjective()  tick=${tick}  agentName=${this.agentName}`);
+        this.logger.trace(`Finished: ObservationRecord.addHistorySubjective()  tick=${tick}  agentName=${this.agentName}`);
     }
 
     _updateContainerMemory(events, updatedBlocks){
@@ -275,18 +276,18 @@ class ObservationRecord{
         }
     }
 
-    toFormattedStrings(startTick=0){
+    toFormattedStrings({startTick=0, ignoreKeys=[]}={}){
         this.logger.debug(`Calling: ObservationRecord.toFormattedStrings()  agentName=${this.agentName || "(objective)"}`);
-        const stateJsonStr = dumpToJson(this.memory, {argList:["\t"]});
+        const stateJsonStr = dumpToJson(this.memory, {argList:["\t"], ignoreKeys:ignoreKeys});
         const historyJsonStr = dumpToJson(this.history, {argList:["\t"], sortedMapRange:[startTick, Infinity]});
 
         this.logger.debug(`Finished: ObservationRecord.toFormattedStrings()  agentName=${this.agentName || "(objective)"}`);
         return {stateJsonStr, historyJsonStr};
     }
 
-    fromFormattedStrings(stateJsonStr, historyJsonStr=null){
+    fromFormattedStrings(stateJsonStr, historyJsonStr=null, Block){
         this.logger.debug(`Calling: ObservationRecord.fromFormattedStrings()  agentName=${this.agentName || "(objective)"}`);
-        this.memory = loadFromJson(stateJsonStr);
+        this.memory = loadFromJson(stateJsonStr, {setStateId: true, Block});
         if(this.memory.blocks?.constructor?.name !== "Vec3Map"){
             throw new Error("Memory Json file broken.");
         }
@@ -354,6 +355,15 @@ class ObservationRecord{
         return rangeTicks;
     }
 
+    getLatestTick(){
+        const ticks = this.history.keys();
+        if(ticks.length === 0){
+            return null;
+        } else {
+            return ticks.slice(-1)[0];
+        }
+    }
+
     async overwriteState(blockState, containerState/*, agentState*/){
         this.logger.trace(`Calling: ObservationRecord.overwriteState()`);
 
@@ -369,7 +379,7 @@ class ObservationRecord{
             if(b.name === null){
                 this.memory.blocks.delete(pos);
             } else {
-                const block = {name: b.name};
+                const block = {name: b.name, stateId: b.stateId};
                 if(b.properties){
                     block.properties = b.properties;
                 }   

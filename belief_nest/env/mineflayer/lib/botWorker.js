@@ -148,6 +148,8 @@ bot.once('spawn', async () => {
                 case "observation":     responseData = await observation(args); break;
                 case "updateAgentInfo": updateAgentInfo(args); break;
                 case "teleport":        await _teleport(args); break;
+                case "chat":            await chat(args); break;
+                case "proxyChat":       await proxyChat(args); break;
                 case "setBlocks":       await _setBlocks(args); break;
                 case "clearBox":        await _clearBox(args); break;
                 case "enableTransparency": _enableTransparency(args); break;
@@ -412,6 +414,22 @@ async function updateOffset({ newOffset }){
     }
 }
 
+function chat({ msg }){
+    bot.chat(msg);
+}
+
+function proxyChat({ agentName, msg, silent=false }){
+    logger.debug(`Calling: proxyChat "${agentName}" "${msg}" "${silent}"`);
+    if(!bot.isAdmin){
+        throw new Error(`"proxyChat" is only for admin player. mcName=${mcName}`);
+    }
+    bot.emit("proxyChat", agentName, msg);
+    if(!silent){
+        bot.chat(`${agentName} said: ${msg}`);
+    }
+    logger.debug(`Finished: proxyChat`);
+}
+
 async function observation(argObj){
     if(!bot.isAdmin){
         throw new Error(`"observation" is only for admin player. mcName=${mcName}`);
@@ -480,7 +498,12 @@ function setPorts({parentSimPort:aParentSimPort}){
 }
 
 function getSimStatus(){
-    return {"mode":obsManager.mode, "isActive": obsManager.isSchedulerActive, "tick":obsManager.globalTick};
+    return {
+        "mode": obsManager.mode, 
+        "isActive": obsManager.isSchedulerActive, 
+        "tick": obsManager.globalTick, 
+        "lastObsTick": obsManager.observation.objective.getLatestTick(),
+    };
 }
 
 async function addChildSimPort({agentName, port}){

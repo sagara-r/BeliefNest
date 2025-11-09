@@ -350,6 +350,33 @@ app.post("/overwriteState", requireParams(['beliefPath', 'blockState', 'chestSta
     res.json(responseData);
 }));
 
+app.post("/chat", requireParams(['beliefPath', 'agentName', 'msg']), asyncWrapper(async (req,res)=> {
+    const beliefPath = req.body.beliefPath;
+    const agentName = req.body.agentName;
+    const msg = req.body.msg;
+    const silent = req.body.silent ?? false;
+
+    const sim = getSim(world, beliefPath);
+    const simStatus = await sim.getSimStatus();
+
+    let errorMsg;
+    if(simStatus.mode !== "observe"){
+        errorMsg = `Mode of simulator ${beliefPath} must be observe, not ${simStatus.mode}.`;
+    }
+    else if(!simStatus.isActive){
+        errorMsg = `Observation is not running.`;
+    }
+
+    if(errorMsg){
+        res.json({success: false, errorMsg})
+    } else {
+        const player = sim.getPlayer(agentName);
+        await player.chat({msg, silent});
+
+        res.json({success: true, errorMsg:null});
+    }
+}));
+
 app.post("/getSimStatus", asyncWrapper(async (req,res)=> {
     const beliefPath = req.body.beliefPath || null;
 

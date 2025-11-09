@@ -11,6 +11,7 @@
   - [execute_mc_commands_by_admin()](#execute_mc_commands_by_admin)
   - [switch_branch()](#switch_branch)
   - [overwrite_belief()](#overwrite_belief)
+  - [chat()](#chat)
   - [get_branch_str()](#get_branch_str)
   - [load_from_template()](#load_from_template)
   - [get_sim_status()](#get_sim_status)
@@ -35,7 +36,7 @@
 |--------------|----------------|--------------|----------------------------------|
 | `config`			| `dict`		| (required)       	| 設定を記述した辞書．詳細は[こちら](#config) |
 | `initial_state`	| `dict`        | (required)      	| 初期状態を記述した辞書．generate_init_state.jsにより事前に作成． |
-| `resume`			| `bool`		| `False`          	| 途中から再開するかどうか。Trueの場合，config, initial_stateは読み込まれない．|
+| `resume`			| `bool`		| `False`          	| 途中から再開するかどうか．Trueの場合，config, initial_stateは読み込まれない．|
 | `mf_server_host`	| `str`         | `localhost`      	| Javascriptサーバのホスト．  |
 | `mf_server_port`	| `int`         | `3000`      		| Javascriptサーバのポート番号．  |
 | `mc_host`			| `str`         | `localhost`      	| Real worldを作成するMinecraftサーバのホスト．  |
@@ -54,7 +55,7 @@
 #### Parameters
 | 名前         | 型            | デフォルト値 | 説明                             |
 |--------------|----------------|--------------|----------------------------------|
-| `belief_path`			| `str`		| (required)   | 新たに作成するシミュレータの親シミュレータ．詳細は[こちら](#argument-belief_path)。|
+| `belief_path`			| `str`		| (required)   | 新たに作成するシミュレータの親シミュレータ．詳細は[こちら](#argument-belief_path)．|
 | `agent_name`			| `str`			| (required)   | 新たにシミュレータを持つエージェント名．|
 | `offset`				| `list[int]`   | (required)   | シミュレータのオフセット．|
 | `player_prefix`		| `str`          | (required)  | プレイヤーが持つprefix．同じMinecraftワールド内では同一のprefixを指定するシミュレータは存在できない．|
@@ -72,7 +73,7 @@
 #### Parameters
 | 名前         | 型            | デフォルト値 | 説明                             |
 |--------------|----------------|--------------|----------------------------------|
-| `belief_path`			| `str`		| (required)   | 削除するシミュレータ．詳細は[こちら](#argument-belief_path)。|
+| `belief_path`			| `str`		| (required)   | 削除するシミュレータ．詳細は[こちら](#argument-belief_path)．|
 
 #### Returns
 なし
@@ -85,7 +86,7 @@
 #### Parameters
 | 名前         | 型            | デフォルト値 | 説明                             |
 |--------------|----------------|--------------|----------------------------------|
-| `belief_path`				| `str`			| (required)   | 制御したいエージェントがいるシミュレータ．詳細は[こちら](#argument-belief_path)。|
+| `belief_path`				| `str`			| (required)   | 制御したいエージェントがいるシミュレータ．詳細は[こちら](#argument-belief_path)．|
 | `agent_name`				| `str`			| (required)   | 制御したいエージェントの名前．|
 | `code`					| `str`   		| (required)   | 実行するプログラム．|
 | `start_stop_observation`	| `bool`        | `True`		| Trueの場合，プログラム実行前後に観測開始・停止処理を行う． |
@@ -106,8 +107,8 @@
 #### Parameters
 | 名前         | 型            | デフォルト値 | 説明                             |
 |--------------|----------------|--------------|----------------------------------|
-| `belief_path`			| `str`		| (required)   | コマンドを実行させたいエージェントがいるシミュレータ．詳細は[こちら](#argument-belief_path)。|
-| `agent_name`			| `str`			| (required)   | コマンドをじっこうさせたいエージェントの名前．|
+| `belief_path`			| `str`		| (required)   | コマンドを実行させたいエージェントがいるシミュレータ．詳細は[こちら](#argument-belief_path)．|
+| `agent_name`			| `str`			| (required)   | コマンドを実行させたいエージェントの名前．|
 | `commands`			| `str\|list[str]`   | (required)   | 実行するコマンド（のリスト）．|
 | `start_stop_observation`	| `bool`        | `True`		| Trueの場合，プログラム実行前後に観測開始・停止処理を行う． |
 | `wait_sec`				| `int`         | `1`  			| プログラム終了後に待機する秒数．短い場合，最後の行動が記録されないことがある．|
@@ -123,7 +124,7 @@
 #### Parameters
 | 名前         | 型            | デフォルト値 | 説明                             |
 |--------------|----------------|--------------|----------------------------------|
-| `belief_path`			| `str`		| (required)   | コマンドを実行させたい管理者プレイヤーがいるシミュレータ．詳細は[こちら](#argument-belief_path)。|
+| `belief_path`			| `str`		| (required)   | コマンドを実行させたい管理者プレイヤーがいるシミュレータ．詳細は[こちら](#argument-belief_path)．|
 | `commands`			| `str\|list[str]`   | (required)   | 実行するコマンド（のリスト）．|
 
 #### Returns
@@ -137,7 +138,7 @@
 #### Parameters
 | 名前         | 型            | デフォルト値 | 説明                             |
 |--------------|----------------|--------------|----------------------------------|
-| `belief_path`			| `str`		| (required)   | ブランチを切り替えたいシミュレータ．詳細は[こちら](#argument-belief_path)。|
+| `belief_path`			| `str`		| (required)   | ブランチを切り替えたいシミュレータ．詳細は[こちら](#argument-belief_path)．|
 | `branch_name`			| `str`		| (required)   | 切り替え先のブランチ名．|
 
 #### Returns
@@ -153,7 +154,7 @@
 #### Parameters
 | 名前         | 型            | デフォルト値 | 説明                             |
 |--------------|----------------|--------------|----------------------------------|
-| `belief_path`			| `str`		| (required)   | ブランチを表す文字列を取得したいシミュレータ．詳細は[こちら](#argument-belief_path)。|
+| `belief_path`			| `str`		| (required)   | ブランチを表す文字列を取得したいシミュレータ．詳細は[こちら](#argument-belief_path)．なお，存在しないシミュレータを指定すると，そのシミュレータがfollowブランチとして存在する場合の結果を返す．|
 
 #### Returns
 | 型            | 説明                             |
@@ -168,9 +169,30 @@
 #### Parameters
 | 名前         | 型            | デフォルト値 | 説明                             |
 |--------------|----------------|--------------|----------------------------------|
-| `belief_path`			| `str`		| (required)   | 上書きしたいシミュレータ．詳細は[こちら](#argument-belief_path)。|
+| `belief_path`			| `str`		| (required)   | 上書きしたいシミュレータ．詳細は[こちら](#argument-belief_path)．|
 | `blocks`			| `list[dict]`		| `[]`   | 変更したいブロックの情報．キーとして`position`と`name`を持つ辞書をリストで与える．例として`[{"position": [0, -52, -10], "name": "gold_block"}]`を与えることができる． |
 | `chests`			| `list[dict]`		| `[]`   | 変更したいチェストの情報．キーとして`position`と`items`を持つ辞書をリストで与える．例として`[{"position": [-2, -51, -4], "items":{"iron_chestplate":1}}]`を与えることができる．|
+
+#### Returns
+| 型            | 説明                             |
+|----------------|----------------------------------|
+| `bool`		| 実行に成功したかどうか|
+| `str`			| 実行に失敗した場合のエラーメッセージ|
+
+----------------
+
+### chat
+プレイヤーに発言させる．主にHumanPlayerのために使用する．
+
+#### Parameters
+| 名前         | 型            | デフォルト値 | 説明                             |
+|--------------|----------------|--------------|----------------------------------|
+| `belief_path`			| `str`		| (required)   | 発言するプレイヤーがいるシミュレータ．詳細は[こちら](#argument-belief_path)．|
+| `agent_name`			| `str`			| (required)   | 発言するエージェントの名前．|
+| `msg`			| `str`   | (required)   | 発言の内容．|
+| `silent`			| `bool`   | `False`   | Trueの場合，ゲーム画面内に発言内容を表示しない．|
+| `start_stop_observation`	| `bool`        | `True`		| Trueの場合，発言前後に観測開始・停止処理を行う． |
+| `wait_sec`				| `int`         | `2`  			| プログラム終了後に待機する秒数．短い場合，発言内容が記録されないことがある．|
 
 #### Returns
 | 型            | 説明                             |
@@ -186,9 +208,12 @@
 #### Parameters
 | 名前         | 型            | デフォルト値 | 説明                             |
 |--------------|----------------|--------------|----------------------------------|
-| `belief_path`			| `str`		| (required)   | 信念情報を取得するシミュレータ．`template`内の変数`branch`に代入される．詳細は[こちら](#argument-belief_path)。|
+| `belief_path`			| `str`		| (required)   | 信念情報を取得するシミュレータ．`template`内の変数`branch`に代入される．詳細は[こちら](#argument-belief_path)．なお，存在しないシミュレータを指定すると，そのシミュレータがfollowブランチとして存在する場合の結果を返す．|
 | `template`			| `str`		| (required)   | Jinja2形式のテンプレートの文字列．詳細は[こちら](#jinja2-filters)|
 | `variables`			| `dict`	| `{}`		   | テンプレートで用いる追加の変数．|
+| `extra_filters`				| `list`         | `[]`  			| 追加で使用するjinja2フィルタのリスト．|
+| `allow_filter_override`				| `bool`         | `True`  			| Trueの場合，extra_filtersによる同名のフィルタの上書きを許可する．|
+| `dump`				| `bool`         | `True`  			| Trueの場合，最新の観測内容を使用する．|
 
 #### Returns
 | 型            | 説明                             |
@@ -203,7 +228,7 @@
 #### Parameters
 | 名前         | 型            | デフォルト値 | 説明                             |
 |--------------|----------------|--------------|----------------------------------|
-| `belief_path`			| `str`		| `None`   | 情報を取得するシミュレータ．詳細は[こちら](#argument-belief_path)。Noneの場合，全シミュレータの情報を返す．|
+| `belief_path`			| `str`		| `None`   | 情報を取得するシミュレータ．詳細は[こちら](#argument-belief_path)．Noneの場合，全シミュレータの情報を返す．|
 
 #### Returns
 | 型            | 説明                             |
@@ -218,7 +243,7 @@
 #### Parameters
 | 名前         | 型            | デフォルト値 | 説明                             |
 |--------------|----------------|--------------|----------------------------------|
-| `belief_path`			| `str`		| (required)   | オフセットを取得するシミュレータ．詳細は[こちら](#argument-belief_path)。|
+| `belief_path`			| `str`		| (required)   | オフセットを取得するシミュレータ．詳細は[こちら](#argument-belief_path)．|
 
 #### Returns
 | 型            | 説明                             |
@@ -246,7 +271,7 @@
 #### Parameters
 | 名前         | 型            | デフォルト値 | 説明                             |
 |--------------|----------------|--------------|----------------------------------|
-| `belief_path`			| `str`		| (required)   | 観測を開始するシミュレータ．詳細は[こちら](#argument-belief_path)。|
+| `belief_path`			| `str`		| (required)   | 観測を開始するシミュレータ．詳細は[こちら](#argument-belief_path)．|
 
 #### Returns
 なし
@@ -259,7 +284,7 @@
 #### Parameters
 | 名前         | 型            | デフォルト値 | 説明                             |
 |--------------|----------------|--------------|----------------------------------|
-| `belief_path`			| `str`		| (required)   | 観測を停止するシミュレータ．詳細は[こちら](#argument-belief_path)。|
+| `belief_path`			| `str`		| (required)   | 観測を停止するシミュレータ．詳細は[こちら](#argument-belief_path)．|
 
 #### Returns
 なし
@@ -272,7 +297,7 @@
 #### Parameters
 | 名前         | 型            | デフォルト値 | 説明                             |
 |--------------|----------------|--------------|----------------------------------|
-| `belief_path`			| `str`		| (required)   | 観測を保存するシミュレータ．詳細は[こちら](#argument-belief_path)。|
+| `belief_path`			| `str`		| (required)   | 観測を保存するシミュレータ．詳細は[こちら](#argument-belief_path)．|
 | `recursive`			| `bool`		| `False`   | Trueの場合，その子孫シミュレータでも観測を保存する．|
 
 #### Returns
@@ -285,7 +310,9 @@
 | `staticBlockTypes`		| `list[str]`	| (required)   | エージェントが初期知識として位置を知っているブロックの種類名．なおその後にこれらのブロックが配置・破壊された場合については他のブロックと同等に扱われる．|
 | `adminAgentName`			| `str`			| (required)   | 管理者プレイヤーの名前．|
 | `canDigWhenMove`			| `bool`		| (required)   | Trueの場合，エージェントが移動する際にブロックを破壊を許可する．|
-| `moveTimeoutSec`			| `int`			| (required)   | エージェントの移動のタイムアウト秒数．|
+| `moveTimeoutSec`			| `int`			| 60   | エージェントの移動のタイムアウト秒数．|
+| `stuckCheckIntervalSec`			| `float`			| 2   | スタック検知の間隔の秒数．|
+| `stuckOffsetRange`			| `float`			| 0.5   | スタック検知時の最大移動ブロック数．|
 | `players`					| `dict`		| (required)   | プレイヤー情報．[下記](#players)を参照．|
 | `observation`				| `dict`		| (required)   | 観測に関するオプション．[下記](#observation)を参照．|
 
@@ -312,7 +339,9 @@
 | `maxVisibleDistance`			| `int`		| `20`   |エージェントが観測可能な最大距離．|
 | `disablePositionFiltering`	| `bool`	| `False`   | Trueの場合，エージェント位置が全エージェントに共有される．|
 | `useLegacyBlockVis`			| `bool`		| `False`   | Trueの場合，旧バージョンのブロック観測関数が使用される．低速だが，大まかなブロックの形状を考慮する．|
-<!--| `positionMemoryMode`			| `str`		| `last_seen`   | |-->
+| `extraTransparentBlocks`   | `list[str]` | `[]` | 透明として扱うブロックのリスト．この設定に関わらず，'barrier', 'ice' および名前に 'glass' を含むブロックは常に透明として扱われる． |
+| `maxPlacementRate`   | `int` | `60` | 1 tickあたりの最大ブロック設置数．大きい値を指定した場合は処理が速くなるが，複数のシミュレータで同時にブロックを設置する時などにプログラムが強制終了する可能性が高まる． |
+| `initialContainerState` | `dict[str, list]` | `{}` | チェストに関する初期信念．キーはエージェント名，値は各チェストを表す辞書のリストであり，それらの辞書は`position`と`items`をキーに持つ．`position`の値はチェストの位置を表す3つの整数を持つリストであり，`items`の値はアイテム名をキーとして持ち，個数を値として持つ辞書である．例：`{"sally":[{"position":[1,-55,5], "items": {"diamond":3}}]}`|
 
 ## Argument: belief_path
 パス形式でシミュレータを指定する文字列．

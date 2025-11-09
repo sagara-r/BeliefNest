@@ -26,6 +26,10 @@ class Event{
         this.obs = [];
     }
 
+    cacheLength(){
+        return this.obs.length;
+    }
+
     get(){
         const obs = this.obs;
         this.obs = [];

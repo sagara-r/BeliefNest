@@ -1,7 +1,7 @@
 const Vec3 = require('vec3');
 const { hasVec3NaN, Vec3BoolMap } = require('../utils');
 
-async function getPlayerVisibility(bot, playerRelativePositions, blockMemory, mcData, nonExistentAgentNames=[], maxDist=20){
+async function getPlayerVisibility(bot, playerRelativePositions, blockMemory, mcData, Block, nonExistentAgentNames=[], maxDist=20, extraTransparentBlocks=[]){
     const height = new Vec3(0, bot.entity.height, 0);
     const o = bot.offsetVec3;
     const absEnvBox = [bot.envBox[0].plus(o), bot.envBox[1].plus(o)];
@@ -29,23 +29,27 @@ async function getPlayerVisibility(bot, playerRelativePositions, blockMemory, mc
                 const size = new Vec3(absMaxX - absMinX + 1, absMaxY - absMinY + 1, absMaxZ - absMinZ + 1)
 
                 // Build a 3D occupancy grid (`occ`) representing occluding (vision-blocking) blocks only.
-                const occ = get_occupancy_grid(blockMemory, mcData, size, o, new Vec3(absMinX, absMinY, absMinZ));
-                playerVisibility[seeAgentName][sawAgentName] = rayVisible(seeAbsPos, sawAbsPos, new Vec3(absMinX, absMinY, absMinZ), occ, size);
+                const {occ, shapeGrid} = get_occupancy_grid(blockMemory, mcData, Block, size, o, new Vec3(absMinX, absMinY, absMinZ), extraTransparentBlocks);
+                playerVisibility[seeAgentName][sawAgentName] = rayVisible(seeAbsPos, sawAbsPos, new Vec3(absMinX, absMinY, absMinZ), occ, shapeGrid, size);
             }            
         }
     }
     return playerVisibility;
 }
 
-function get_occupancy_grid(blockMemory, mcData, size, offset, absMin){
+function get_occupancy_grid(blockMemory, mcData, Block, size, offset, absMin, extraTransparentBlocks=[]){
     const occ = new Uint8Array(size.x * size.y * size.z);
+    const shapeGrid = new Array(size.x * size.y * size.z);
+
     for (const [pos, b] of blockMemory.entries()) {
         // Skip blocks with no collision (e.g., air, grass, flowers)
         if (mcData.blocksByName[b.name].boundingBox === "empty") continue;
 
         // Skip transparent blocks
+        let transparentBlocks = ['glass', 'tinted_glass', 'glass_pane', 'barrier', 'ice'];
+        transparentBlocks = transparentBlocks.concat(extraTransparentBlocks);
         if(
-            ['glass', 'tinted_glass', 'glass_pane', 'barrier'].includes(b.name) ||
+            transparentBlocks.includes(b.name) || 
             b.name.endsWith('_stained_glass') ||
             b.name.endsWith('_stained_glass_pane')
         ) continue;
@@ -54,15 +58,37 @@ function get_occupancy_grid(blockMemory, mcData, size, offset, absMin){
         const ix = absPos.x - absMin.x;
         const iy = absPos.y - absMin.y;
         const iz = absPos.z - absMin.z;
-        if (0 <= ix && ix < size.x && 0 <= iy && iy < size.y && 0 <= iz && iz < size.z) {
-            occ[ix + size.x * (iy + size.y * iz)] = 1;
+        if (ix < 0 || ix >= size.x || iy < 0 || iy >= size.y || iz < 0 || iz >= size.z) continue;
+
+        const idx = ix + size.x * (iy + size.y * iz);
+        occ[idx] = 1;
+
+        if(b.stateId){
+            const block = Block.fromStateId(b.stateId, 0);
+
+            const isTall = 
+                block.name.endsWith('_wall') ||
+                block.name.endsWith('_fence') ||
+                (block.name.endsWith('_fence_gate') && !block.properties?.open);
+
+            if(isTall && block.shapes?.length){
+                shapeGrid[idx] = block.shapes.map(([xmin, ymin, zmin, xmax, ymax, zmax]) => [
+                    xmin, ymin, zmin,
+                    xmax, Math.min(ymax, 1),
+                    zmax
+                ]);
+            } else {
+                shapeGrid[idx] = block.shapes?.length ? block.shapes : null;
+            }
+        } else {
+            throw new Error(`stateId is empty pos=${pos} name=${b.name}`);
         }
     }
-    return occ;
+    return {occ, shapeGrid};
 }
 
 /* playerPositions[agentName] = playerPosition (Vec3) */
-async function getBlockVisibility(bot, playerRelativePositions, blockMemory, mcData, nonExistentAgentNames=[], maxDist=20, useLegacyBlockVis=false){
+async function getBlockVisibility(bot, playerRelativePositions, blockMemory, mcData, Block, nonExistentAgentNames=[], maxDist=20, useLegacyBlockVis=false, extraTransparentBlocks=[]){
     
     const agentNames = Object.keys(playerRelativePositions);
     const height = new Vec3(0, bot.entity.height, 0);
@@ -90,7 +116,7 @@ async function getBlockVisibility(bot, playerRelativePositions, blockMemory, mcD
         const size = new Vec3(absMaxX - absMinX + 1, absMaxY - absMinY + 1, absMaxZ - absMinZ + 1)
 
         // Build a 3D occupancy grid (`occ`) representing occluding (vision-blocking) blocks only.
-        const occ = get_occupancy_grid(blockMemory, mcData, size, o, new Vec3(absMinX, absMinY, absMinZ));
+        const {occ, shapeGrid} = get_occupancy_grid(blockMemory, mcData, Block, size, o, new Vec3(absMinX, absMinY, absMinZ), extraTransparentBlocks);
 
         if(!nonExistentAgentNames.includes(agentName)){
             for (let x = absMinX; x <= absMaxX; x++) 
@@ -156,7 +182,7 @@ async function getBlockVisibility(bot, playerRelativePositions, blockMemory, mcD
                     }
                 } else {
                     for (const targetPoint of targetPoints){
-                        const isVisible = rayVisible(playerEyeAbsPos, targetPoint, new Vec3(absMinX, absMinY, absMinZ), occ, size);
+                        const isVisible = rayVisible(playerEyeAbsPos, targetPoint, new Vec3(absMinX, absMinY, absMinZ), occ, shapeGrid, size);
                         if(isVisible){
                             visiblePositions.add(blockAbsPos.minus(o));
                             break;
@@ -175,7 +201,7 @@ function _calc_dist(vec1, vec2){
     return Math.sqrt(Math.pow(diff.x, 2) + Math.pow(diff.y, 2) + Math.pow(diff.z, 2));
 }
 
-function rayVisible(playerPos, targetPos, origin, occ, size) {
+function rayVisible(playerPos, targetPos, origin, occ, shapeGrid, size) {
     const [ox, oy, oz] = [playerPos.x, playerPos.y, playerPos.z];
     const [tx, ty, tz] = [targetPos.x,  targetPos.y,  targetPos.z];
 
@@ -245,10 +271,62 @@ function rayVisible(playerPos, targetPos, origin, occ, size) {
         return true;
       } 
 
-      if (occ[ix + size.x * (iy + size.y * iz)]) {
-        return false;
-      }
+        const idx = ix + size.x * (iy + size.y * iz);
+        if (occ[idx]) {
+            const shapes = shapeGrid[idx];
+            if (!shapes) return false;
+
+            const blockMin = {
+                x: ix + origin.x,
+                y: iy + origin.y,
+                z: iz + origin.z
+            };
+
+            let blocked = false;
+            for (const aabb of shapes) {
+                const min = {
+                    x: blockMin.x + aabb[0],
+                    y: blockMin.y + aabb[1],
+                    z: blockMin.z + aabb[2]
+                };
+                const max = {
+                    x: blockMin.x + aabb[3],
+                    y: blockMin.y + aabb[4],
+                    z: blockMin.z + aabb[5]
+                };
+                if (rayIntersectsAABB(playerPos.x, playerPos.y, playerPos.z,
+                                    dx, dy, dz, min, max, len)) {
+                    blocked = true; 
+                    break;
+                }
+            }
+            if (blocked) 
+                return false;
+        }
+
     }
 }
+
+function rayIntersectsAABB(ox, oy, oz, dx, dy, dz, min, max, maxDist) {
+    let tMin = 0, tMax = maxDist;
+    // slab method
+    for (const [o, d, mn, mx] of [[ox, dx, min.x, max.x],
+                                    [oy, dy, min.y, max.y],
+                                    [oz, dz, min.z, max.z]]) {
+        if (d === 0) {
+            if (o < mn || o > mx) return false;
+            continue;
+        }
+        const t1 = (mn - o) / d;
+        const t2 = (mx - o) / d;
+        const tNear = Math.min(t1, t2);
+        const tFar  = Math.max(t1, t2);
+        tMin = Math.max(tMin, tNear);
+        tMax = Math.min(tMax, tFar);
+        if (tMin > tMax) return false;
+    }
+    return tMax >= 0 && tMin <= maxDist;
+}
+
 
 module.exports = { getPlayerVisibility, getBlockVisibility }

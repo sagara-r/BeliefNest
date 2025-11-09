@@ -6,3 +6,4 @@ requests
 setuptools
 psutil
 jinja2
+pika

@@ -20,10 +20,13 @@ INITIAL_STATE_FILE = "state#-1.json"
 # Use "localhost" when running outside Docker
 # Use "host.docker.internal" to access the host from inside Docker (only on Windows/macOS)
 MC_HOST = "mc_server"  
+#MC_HOST = "localhost"
 MC_PORT = 25565
 
 # Same rules apply for RabbitMQ
 MQ_HOST = "rabbitmq"
+#MQ_HOST = "localhost"
+
 TASK = "Get a diamond from a chest."
 
 #########################################################
@@ -99,10 +102,11 @@ bn = BeliefNestWrapper(
     logger=logger
 )
 
-bn.create_sim("/", "anne", [-12,0,-25], "a_")
-bn.create_sim("/anne", "sally", [-12,0,-50], "as_")
-bn.create_sim("/", "sally", [12,0,-25], "s_")
-bn.create_sim("/sally", "anne", [12,0,-50], "sa_")
+bn.create_sim("/", "sally", [-12,0,-25], "s_")
+bn.create_sim("/sally", "anne", [-12,0,-50], "sa_")
+
+bn.create_sim("/", "anne", [12,0,-25], "a_")
+bn.create_sim("/anne", "sally", [12,0,-50], "as_")
 
 input("Simulators are created. Press ENTER to start scenario in real world.")
 

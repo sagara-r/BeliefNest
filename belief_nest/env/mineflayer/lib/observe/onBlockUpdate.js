@@ -33,6 +33,7 @@ class OnBlockUpdate extends Event {
         ){
             const block = {
                 name: newBlock.name,
+                stateId: newBlock.stateId,
             };
             const props = newBlock.getProperties();
             if(props){

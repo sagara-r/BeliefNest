@@ -242,8 +242,12 @@ function vecArrToStr(arr){
     return `(${arr[0]},${arr[1]},${arr[2]})`;
 }
 
-function dumpToJson(obj, {argList=[], sortedMapRange=null}={}){
+function dumpToJson(obj, {argList=[], sortedMapRange=null, ignoreKeys=[],}={}){
     return JSON.stringify(obj, (key, value) => {
+        if (ignoreKeys.includes(key)) {
+            return undefined;
+        }
+
         if(isVec3Map(value)){
             const entries = value.entries();
             return {
@@ -272,13 +276,22 @@ function dumpToJson(obj, {argList=[], sortedMapRange=null}={}){
     }, ...argList);
 }
 
-function loadFromJson(jsonStr){
+function loadFromJson(jsonStr, {setStateId=false, Block=null}={}){
     return JSON.parse(jsonStr, (key, value) => {
         if (value?.__Vec3Map__) {
             const map = new Vec3Map();
             for (const item of value.__Vec3Map__) {
                 if (item.position) {
                     const { position, ...rest } = item;
+                    if(key === "blocks" && setStateId && !rest.stateId){
+                        try{
+                            rest.stateId = Block.fromProperties(rest.name, rest.properties || {}, 0)
+                        }catch(e){
+                            console.log(`name:${rest.name}, properties:${rest.properties}`);
+                            console.log(`item=${JSON.stringify(item)}`);
+                            throw e;
+                        }
+                    }
                     map.set(new Vec3(...position), rest);
                 }
             }
@@ -773,4 +786,6 @@ function isErrorMessage(msg){
     return false;
 }
 
-module.exports = { getSim, WorkerLogger, LoggingWrapper, PersistentWorker, roundVec3, hasVec3NaN, vecArrToStr, dumpToJson, loadFromJson, dumpToYaml, loadFromYaml, cloneObj, buildBranchCkptDir, Vec3Map, Vec3BoolMap, getChunkCornersInBox, isVec3, isVec3Map, isVec3BoolMap, isSortedMap, SortedMap, mergeSortedMapJsonStrings, copyFiles, containsInvalidCharacters, getFormattedDateTime, handleError, isErrorMessage }
+const sleep_ms = (time) => new Promise((resolve) => setTimeout(resolve, time));
+
+module.exports = { getSim, WorkerLogger, LoggingWrapper, PersistentWorker, roundVec3, hasVec3NaN, vecArrToStr, dumpToJson, loadFromJson, dumpToYaml, loadFromYaml, cloneObj, buildBranchCkptDir, Vec3Map, Vec3BoolMap, getChunkCornersInBox, isVec3, isVec3Map, isVec3BoolMap, isSortedMap, SortedMap, mergeSortedMapJsonStrings, copyFiles, containsInvalidCharacters, getFormattedDateTime, handleError, isErrorMessage, sleep_ms }

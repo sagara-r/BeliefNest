@@ -72,11 +72,11 @@ docker run -it --rm --network bnnet --name rabbitmq -p 5672:5672 -p 15672:15672 
 
   ワールドに参加したら、ターミナルで以下を順に実行してください。
   ```
-  op operator
+  op opmanager
   op xxx
   gamemode creative xxx
   ```
-  ただし`xxx`はあなたのユーザ名です。これによりあなたのユーザとBeliefNestで使用する`operator`というユーザにop権限が与えられ、様々なコマンドを使用可能になります。同一サーバを再度使用する際には、上記のコマンド実行は不要です。
+  ただし`xxx`はあなたのユーザ名です。これによりあなたのユーザとBeliefNestで使用する`opmanager`というユーザにop権限が与えられ、様々なコマンドを使用可能になります。同一サーバを再度使用する際には、上記のコマンド実行は不要です。
 
   Minecraftの画面でスペースを素早く2回押すとスペースで上昇できるようになります。WASDおよびShiftで移動できます。
 
@@ -130,7 +130,7 @@ node generate_init_state.js
 
 ```bibtex
 @article{sagara2025beliefnest,
-  title={BeliefNest: A Joint Action Simulator for Embodied Agents with Theory of Mind},
+  title={{BeliefNest}: A Joint Action Simulator for Embodied Agents with Theory of Mind},
   author={Rikunari SAGARA, Koichiro TERAO, Naoto IWAHASHI},
   year={2025},
   journal={arXiv preprint arXiv:2505.12321}

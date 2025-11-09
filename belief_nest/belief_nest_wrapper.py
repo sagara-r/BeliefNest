@@ -8,6 +8,8 @@ from datetime import datetime
 from pathlib import Path
 import requests
 import atexit
+import pika
+import threading
 
 from .utils import create_logger, MethodLogging
 
@@ -63,6 +65,14 @@ class BeliefNestWrapper(MethodLogging):
             with world_dir.joinpath("state#-1.json").open("w") as f:
                 json.dump(initial_state, f, indent=2)
 
+        self.mq_connection = pika.BlockingConnection(pika.ConnectionParameters(mq_host))
+        self.chat_callbacks = {}
+        self.mq_channels = {}
+        self.mq_channel_threads = {}
+        t = threading.Thread(target=self._create_mq_channel, args=("/",), daemon=True)
+        t.start()
+        self.mq_channel_threads["/"] = t
+
         Path(self.log_dir).mkdir(parents=True, exist_ok=True)
 
         self.js_process = self._get_js_process(mf_server_port)
@@ -88,6 +98,13 @@ class BeliefNestWrapper(MethodLogging):
     
             
     def create_sim(self, belief_path, agent_name, offset, player_prefix, mc_host=None, mc_port=None):
+        if belief_path[-1] != "/":
+            belief_path += "/"
+        t = threading.Thread(target=self._create_mq_channel, args=(belief_path,), daemon=True)
+        t.start()
+        self.mq_channel_threads[belief_path] = t
+
+        self._create_mq_channel(belief_path)
         args = {
             "beliefPath": belief_path,
             "agentName": agent_name,
@@ -183,16 +200,97 @@ class BeliefNestWrapper(MethodLogging):
         error_msg = response["errorMsg"]
 
         return success, error_msg
+    
+    def chat(self, belief_path, agent_name, msg, silent=False, start_stop_observation=True, wait_sec=2):
+        args = {
+            "beliefPath": belief_path,
+            "agentName": agent_name,
+            "msg": msg,
+            "silent": silent,
+        }
 
-    def get_branch_str(self, belief_path):
-        self._dump_observation(belief_path)
-        info = self.get_sim_status(belief_path)
-        branch_str = info[0]["branchStr"]
+        if start_stop_observation:
+            self._start_observation(belief_path)
 
-        return branch_str
+        res = requests.post(f"{self.server_addr}/chat", json=args)
+        if res.status_code != 200:
+            self._handle_error(res)
+
+        time.sleep(wait_sec)
         
-    def load_from_template(self, belief_path, template, variables={}, extra_filters=[], allow_filter_override=False):
-        branch_str = self.get_branch_str(belief_path)
+        if start_stop_observation:
+            self._stop_observation(belief_path)
+
+        response = res.json()
+        success = response["success"]
+        error_msg = response["errorMsg"]
+
+        return success, error_msg
+    
+    def register_chat_callback(self, belief_path, callback, **kwargs):
+        if belief_path[-1] != "/":
+            belief_path += "/"
+        self.chat_callbacks.setdefault(belief_path, [])
+        self.chat_callbacks[belief_path].append({
+            "callback": callback,
+            "kwargs": kwargs
+        })
+
+    def remove_chat_callbacks(self, belief_path):
+        if belief_path[-1] != "/":
+            belief_path += "/"
+        self.chat_callbacks[belief_path] = []
+
+    def get_branch_str(self, belief_path, dump=True, get_path=False):
+        if self.sim_exists(belief_path):
+            if dump:
+                # To use branch_str in template, dumping is needed
+                self._dump_observation(belief_path)
+            info = self.get_sim_status(belief_path)
+            branch_str = info[0]["branchStr"]
+
+            return_belief_path = belief_path
+
+        else:
+            belief_struct = self._parse_belief_path(belief_path)
+            parent_belief_path = "/" + "/".join(belief_struct[:-1])
+            parent_branch_str, base_belief_path = self.get_branch_str(parent_belief_path, dump=dump, get_path=True)
+            branch_str = parent_branch_str + f".{belief_struct[-1]}[follow]"
+
+            return_belief_path = base_belief_path
+
+        if get_path:
+            return branch_str, return_belief_path
+        
+        return branch_str
+    
+    def sim_exists(self, belief_path):
+        belief_struct = self._parse_belief_path(belief_path)
+
+        status_list = self.get_sim_status()
+        for status in status_list:
+            branch_str = status["branchStr"]
+            branch_str_struct = branch_str.split(".")[1:]
+
+            if len(belief_struct) != len(branch_str_struct):
+                continue
+
+            exist = True
+            for be, br in zip(belief_struct, branch_str_struct):
+                if be != br.split("[")[0]:
+                    exist = False
+                    break
+
+            if exist:
+                return True
+            
+        return False
+
+        
+    def load_from_template(self, belief_path, template, variables={}, extra_filters=[], allow_filter_override=False, dump=True):
+        branch_str, base_belief_path = self.get_branch_str(belief_path, dump=False, get_path=True)
+        if dump:
+            self._dump_observation(base_belief_path)
 
         variables = dict(
             **variables,
@@ -229,6 +327,12 @@ class BeliefNestWrapper(MethodLogging):
                 self._handle_error(res)
 
         self.js_process.stop()
+
+        for key in self.mq_channels:
+            self.mq_channels[key].stop_consuming()
+        
+        for key in self.mq_channel_threads:
+            self.mq_channel_threads[key].join()
             
     def _get_js_process(self, server_port):
         tmp = os.path.abspath(os.path.dirname(__file__))
@@ -245,6 +349,9 @@ class BeliefNestWrapper(MethodLogging):
             log_level=self.log_level,
             kill_children=True
         )
+    
+    def _parse_belief_path(self, belief_path):
+        return [p for p in belief_path.split("/") if p]
 
     def _start_observation(self, belief_path):
         args = {
@@ -270,6 +377,41 @@ class BeliefNestWrapper(MethodLogging):
         res = requests.post(f"{self.server_addr}/dumpObservation", json=args)
         if res.status_code != 200:
             self._handle_error(res)   
+
+    def _create_mq_channel(self, belief_path):
+        if belief_path[-1] != "/":
+            belief_path += "/"
+
+        def on_message(ch, method, properties, body):
+            try:
+                data = json.loads(body)
+                for callback_dict in self.chat_callbacks[belief_path]:
+                    callback = callback_dict["callback"]
+                    kwargs = callback_dict["kwargs"]
+                    callback(data["msg"], data["agentName"], **kwargs)
+            except Exception as e:
+                print("Error handling message:", e)
+
+        # RabbitMQ接続設定
+        channel = self.mq_connection.channel()
+        self.mq_channels[belief_path] = channel
+
+        chat_exchange = self._get_chat_exchange_name(belief_path)
+        #channel.queue_declare(queue=queue_name, durable=True)
+        #channel.basic_consume(queue=queue_name, on_message_callback=on_message, auto_ack=True)
+
+        channel.exchange_declare(exchange=chat_exchange, exchange_type='fanout', durable=False)
+        result = channel.queue_declare(queue='', exclusive=True)
+        queue_name = result.method.queue
+        channel.queue_bind(exchange=chat_exchange, queue=queue_name)
+        channel.basic_consume(queue=queue_name, on_message_callback=on_message, auto_ack=True)
+
+        print(f"Listening for messages on queue '{queue_name}'...")
+        channel.start_consuming()
+
+    def _get_chat_exchange_name(self, belief_path):
+        parent_agent_names = [p for p in belief_path.split("/") if p]
+        return "-".join(parent_agent_names) + "_chat"
         
     def _handle_error(self, res):
         status_code = res.status_code

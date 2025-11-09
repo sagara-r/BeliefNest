@@ -15,6 +15,7 @@ services:
       DIFFICULTY: "peaceful"
       GENERATOR_SETTINGS: '{"layers":[{"block":"minecraft:bedrock","height":1},{"block":"minecraft:dirt","height":2},{"block":"minecraft:grass_block","height":1}],"biome":"minecraft:plains"}'
       GENERATE_STRUCTURES: "false"
+      MAX_PLAYERS: "100"
     volumes:
       - ./data:/data
     networks:

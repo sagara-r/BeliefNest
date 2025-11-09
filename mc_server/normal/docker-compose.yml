@@ -12,6 +12,7 @@ services:
       VERSION: "1.19"
       ONLINE_MODE: "FALSE"
       DIFFICULTY: "peaceful"
+      MAX_PLAYERS: "100"
     volumes:
       - ./data:/data
     networks:

@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from javascript import require
 from langchain_openai import ChatOpenAI
-from langchain.schema import AIMessage, SystemMessage, HumanMessage
+from langchain_core.messages import AIMessage, SystemMessage, HumanMessage
 from jinja2 import Environment, StrictUndefined
 
 from belief_nest.primitives_for_llm import load_primitives_for_llm
