@@ -10,6 +10,7 @@ services:
       EULA: "TRUE"
 #      TYPE: "FABRIC"
       VERSION: "1.19"
+      OPS: f17b4b3b-d5ad-3874-b1d7-a0f75c37a4ae
       ONLINE_MODE: "FALSE"
       LEVEL_TYPE: "flat"
       DIFFICULTY: "peaceful"
