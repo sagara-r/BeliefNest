@@ -98,13 +98,6 @@ class BeliefNestWrapper(MethodLogging):
     
             
     def create_sim(self, belief_path, agent_name, offset, player_prefix, mc_host=None, mc_port=None):
-        if belief_path[-1] != "/":
-            belief_path += "/"
-        t = threading.Thread(target=self._create_mq_channel, args=(belief_path,), daemon=True)
-        t.start()
-        self.mq_channel_threads[belief_path] = t
-
-        self._create_mq_channel(belief_path)
         args = {
             "beliefPath": belief_path,
             "agentName": agent_name,
@@ -228,6 +221,9 @@ class BeliefNestWrapper(MethodLogging):
         return success, error_msg
     
     def register_chat_callback(self, belief_path, callback, **kwargs):
+        if belief_path != "/":
+            raise NotImplementedError(f'For now, only the case where belief_path = "/" is supported.')
+
         if belief_path[-1] != "/":
             belief_path += "/"
         self.chat_callbacks.setdefault(belief_path, [])

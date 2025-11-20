@@ -693,7 +693,7 @@ class ObservationManager{
                 const specificEvents = eventInstance.get();
                 events = events.concat(specificEvents);
 
-                if(eventInstance.name === "OnChat"){
+                if(eventInstance.name === "OnChat" && this.parentAgentNames.length === 0){
                     for(const e of specificEvents){
                         const chatInfo = {
                             agentName: e.visible.agentName,

@@ -4,7 +4,7 @@ import yaml
 import re
 from pathlib import Path
 from logging import FileHandler, Formatter, DEBUG
-from langchain.schema import SystemMessage, HumanMessage
+from langchain_core.messages import SystemMessage, HumanMessage
 
 from belief_nest import BeliefNestWrapper, coding_llm, llm
 from belief_nest.utils import create_logger
