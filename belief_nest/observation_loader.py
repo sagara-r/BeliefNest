@@ -46,10 +46,10 @@ class ObservationLoader:
         self.cache[filepath] = obj
         return obj
     
-    def _cached_listdir(self, branch_ckpt_dir, valid_ms=2000):
+    def _cached_listdir(self, branch_ckpt_dir, valid_sec=2):
         if branch_ckpt_dir in self.dir_cache:
             now = time.perf_counter()
-            if now - self.dir_cache[branch_ckpt_dir]["time"] < valid_ms:
+            if now - self.dir_cache[branch_ckpt_dir]["time"] < valid_sec:
                 return self.dir_cache[branch_ckpt_dir]["files"]
         
         files = os.listdir(branch_ckpt_dir)
@@ -59,13 +59,13 @@ class ObservationLoader:
         }
         return files
     
-    def _cached_exists(self, path, valid_ms=2000, check_if_false=False):
+    def _cached_exists(self, path, valid_sec=2, check_if_false=False):
         if path in self.cache:
             return True
         
         if path in self.exist_cache:
             now = time.perf_counter()
-            if now - self.exist_cache[path]["time"] < valid_ms:
+            if now - self.exist_cache[path]["time"] < valid_sec:
                 exist = self.exist_cache[path]["exist"]
                 if not check_if_false or exist:
                     return exist
